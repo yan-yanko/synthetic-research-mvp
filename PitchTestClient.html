@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investor Pitch Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 250px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .template-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .template-button {
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .template-button:hover {
+            background-color: #e3e3e3;
+        }
+        .responses {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .investor-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .investor-role {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .investor-background {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .feedback {
+            white-space: pre-line;
+        }
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ffcccc;
+            background-color: #fff8f8;
+        }
+        .debug-info {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow: auto;
+            display: none;
+        }
+        .show-debug {
+            background-color: #666;
+            color: white;
+            margin-top: 10px;
+            width: auto !important;
+            font-size: 12px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Investor Pitch Simulator</h1>
+        <p>Test how different types of investors would react to your startup pitch</p>
+        
+        <div>
+            <h3>Enter your pitch:</h3>
+            <div class="template-selector">
+                <button class="template-button" id="template1">Example 1: EcoTrack</button>
+                <button class="template-button" id="template2">Example 2: TechSolution</button>
+                <button class="template-button" id="clearTemplate">Clear</button>
+            </div>
+            <textarea id="pitchInput" placeholder="Describe your startup, the problem you're solving, your solution, market opportunity, traction, team, and funding ask...">Our startup, EcoTrack, is developing a mobile app that helps consumers track and reduce their carbon footprint through daily choices. The app uses AI to analyze purchase patterns and suggest eco-friendly alternatives. We've built a prototype with 500 beta users who reduced their carbon impact by 20% on average. We have partnerships with 5 sustainable brands who pay for premium placement. Our team includes an ex-Google product manager and an environmental scientist. We're raising $500K to launch fully and reach 50,000 users in 12 months.</textarea>
+        </div>
+        
+        <button id="simulateButton">Simulate Investor Reactions</button>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <button id="toggleDebug" class="show-debug" style="display: none;">Show Technical Details</button>
+        <div id="debugInfo" class="debug-info"></div>
+        
+        <div id="responses" class="responses"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pitchInput = document.getElementById('pitchInput');
+            const simulateButton = document.getElementById('simulateButton');
+            const responsesDiv = document.getElementById('responses');
+            const errorMessage = document.getElementById('errorMessage');
+            const template1Button = document.getElementById('template1');
+            const template2Button = document.getElementById('template2');
+            const clearButton = document.getElementById('clearTemplate');
+            const toggleDebugButton = document.getElementById('toggleDebug');
+            const debugInfo = document.getElementById('debugInfo');
+            
+            // Toggle debug information
+            toggleDebugButton.addEventListener('click', () => {
+                if (debugInfo.style.display === 'none') {
+                    debugInfo.style.display = 'block';
+                    toggleDebugButton.textContent = 'Hide Technical Details';
+                } else {
+                    debugInfo.style.display = 'none';
+                    toggleDebugButton.textContent = 'Show Technical Details';
+                }
+            });
+            
+            const template1 = `Our startup, EcoTrack, is developing a mobile app that helps consumers track and reduce their carbon footprint through daily choices. The app uses AI to analyze purchase patterns and suggest eco-friendly alternatives. We've built a prototype with 500 beta users who reduced their carbon impact by 20% on average. We have partnerships with 5 sustainable brands who pay for premium placement. Our team includes an ex-Google product manager and an environmental scientist. We're raising $500K to launch fully and reach 50,000 users in 12 months.`;
+            
+            const template2 = `We're building SalesAI, a platform that transforms how B2B companies handle sales forecasting. Our AI analyzes communication patterns, CRM data, and market signals to predict deal outcomes with 85% accuracy - compared to the industry average of 45%. We've onboarded 10 mid-market customers paying $2,000/month with a 95% retention rate. Our founding team includes a Stanford AI PhD and sales leaders from Salesforce and Oracle. We're raising $2.5M to expand our engineering team and scale to 100 enterprise customers within 18 months.`;
+            
+            template1Button.addEventListener('click', () => {
+                pitchInput.value = template1;
+            });
+            
+            template2Button.addEventListener('click', () => {
+                pitchInput.value = template2;
+            });
+            
+            clearButton.addEventListener('click', () => {
+                pitchInput.value = '';
+            });
+
+            // Try sending a simple test request first to check server status
+            async function testServerConnection() {
+                try {
+                    const testResponse = await fetch('http://localhost:5001', {
+                        method: 'GET'
+                    });
+                    
+                    if (testResponse.ok) {
+                        console.log('Server connection successful');
+                        return true;
+                    } else {
+                        console.error('Server connection error:', testResponse.status, testResponse.statusText);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Server connection test failed:', error);
+                    return false;
+                }
+            }
+
+            // Test connection when page loads
+            testServerConnection();
+
+            simulateButton.addEventListener('click', async () => {
+                const pitchText = pitchInput.value.trim();
+                
+                if (!pitchText) {
+                    errorMessage.textContent = 'Please enter your pitch';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                // Show loading state
+                simulateButton.disabled = true;
+                simulateButton.textContent = 'Simulating...';
+                document.body.classList.add('loading');
+                errorMessage.style.display = 'none';
+                toggleDebugButton.style.display = 'none';
+                debugInfo.style.display = 'none';
+                debugInfo.textContent = '';
+                responsesDiv.innerHTML = '';
+                
+                try {
+                    // Try direct fetch with raw API endpoint first
+                    const apiUrl = 'http://localhost:5001/api/pitch/simulate-pitch';
+                    console.log(`Sending request to: ${apiUrl}`);
+                    
+                    const debugLog = [];
+                    debugLog.push(`URL: ${apiUrl}`);
+                    debugLog.push(`Method: POST`);
+                    debugLog.push(`Headers: Content-Type: application/json, Accept: application/json`);
+                    debugLog.push(`Body: ${JSON.stringify({ pitchText }).substring(0, 100)}...`);
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ pitchText })
+                    });
+                    
+                    debugLog.push(`Response status: ${response.status} ${response.statusText}`);
+                    const headers = {};
+                    response.headers.forEach((value, key) => {
+                        headers[key] = value;
+                        debugLog.push(`Response header: ${key}: ${value}`);
+                    });
+                    
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    debugLog.push(`Content-Type: ${contentType}`);
+                    
+                    // Always read text first
+                    const text = await response.text();
+                    debugLog.push(`Response body (first 500 chars): ${text.substring(0, 500)}`);
+                    
+                    let data;
+                    if (contentType && contentType.includes('application/json')) {
+                        try {
+                            // Parse the text as JSON if content type is correct
+                            data = JSON.parse(text);
+                            debugLog.push('Successfully parsed response as JSON');
+                        } catch (jsonError) {
+                            debugLog.push(`JSON parse error: ${jsonError.message}`);
+                            throw new Error(`Server returned invalid JSON: ${jsonError.message}`);
+                        }
+                    } else {
+                        debugLog.push('Response is not JSON. Checking for HTML or other content...');
+                        
+                        // If it's HTML, extract any error messages
+                        if (contentType && contentType.includes('text/html')) {
+                            const htmlErrorMatch = text.match(/<pre>([\s\S]*?)<\/pre>/);
+                            const extractedError = htmlErrorMatch ? htmlErrorMatch[1] : 'Unknown HTML error';
+                            debugLog.push(`Found HTML error: ${extractedError}`);
+                            throw new Error(`Server returned HTML instead of JSON: ${extractedError}`);
+                        } else {
+                            throw new Error(`Server returned non-JSON response: ${contentType}`);
+                        }
+                    }
+                    
+                    if (response.ok) {
+                        debugLog.push('Response is OK. Processing data...');
+                        // Clear previous responses
+                        responsesDiv.innerHTML = '';
+                        
+                        // Display new responses
+                        if (data.responses && data.responses.length > 0) {
+                            debugLog.push(`Found ${data.responses.length} investor responses`);
+                            data.responses.forEach(investor => {
+                                const card = document.createElement('div');
+                                card.className = 'investor-card';
+                                
+                                const role = document.createElement('div');
+                                role.className = 'investor-role';
+                                role.textContent = investor.role;
+                                
+                                const background = document.createElement('div');
+                                background.className = 'investor-background';
+                                background.textContent = investor.background;
+                                
+                                const feedback = document.createElement('div');
+                                feedback.className = 'feedback';
+                                feedback.textContent = investor.feedback;
+                                
+                                card.appendChild(role);
+                                card.appendChild(background);
+                                card.appendChild(feedback);
+                                
+                                responsesDiv.appendChild(card);
+                            });
+                        } else {
+                            debugLog.push('No responses found in data');
+                            throw new Error('No investor responses returned from server');
+                        }
+                    } else {
+                        debugLog.push(`Error response: ${response.status} ${response.statusText}`);
+                        const errorMsg = data && data.error ? data.error : `Server error: ${response.status} ${response.statusText}`;
+                        throw new Error(errorMsg);
+                    }
+                } catch (error) {
+                    console.error('Network or processing error:', error);
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    errorMessage.style.display = 'block';
+                    toggleDebugButton.style.display = 'block';
+                    
+                    debugInfo.textContent = debugLog ? debugLog.join('\n') : error.stack || error.toString();
+                } finally {
+                    // Reset loading state
+                    simulateButton.disabled = false;
+                    simulateButton.textContent = 'Simulate Investor Reactions';
+                    document.body.classList.remove('loading');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

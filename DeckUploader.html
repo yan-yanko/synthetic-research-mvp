@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitch Deck & Text Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .upload-container.drag-over {
+            background-color: #e9f7ef;
+            border-color: #2ecc71;
+        }
+        .upload-container p {
+            margin: 10px 0;
+            color: #666;
+        }
+        .file-input {
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+        }
+        .upload-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .upload-btn:hover {
+            background-color: #2980b9;
+        }
+        .selected-file {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .submit-btn {
+            background-color: #2ecc71;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: none;
+            margin-top: 20px;
+        }
+        .submit-btn:hover {
+            background-color: #27ae60;
+        }
+        .submit-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .result-container {
+            margin-top: 30px;
+            display: none;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        .investor-profile {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .summary-box {
+            background-color: #edf7ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .feedback {
+            white-space: pre-line;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+        }
+        .divider {
+            margin: 30px 0;
+            border-top: 1px solid #eee;
+        }
+        .sample-elevator {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 5px;
+        }
+        button.example {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        button.example:hover {
+            background: #e0e0e0;
+        }
+        .pitch-section, .deck-section {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pitch Deck & Text Analyzer</h1>
+    <p>Get personalized investor feedback by uploading your pitch deck and entering your elevator pitch.</p>
+    
+    <div class="section pitch-section">
+        <label for="pitch-text">1. Enter your elevator pitch:</label>
+        <textarea id="pitch-text" placeholder="Describe your startup in 1-2 paragraphs. What problem you're solving, your solution, market opportunity, traction, team, and funding ask..."></textarea>
+        <div class="sample-elevator">
+            <button class="example" id="example-btn">See example pitch</button>
+        </div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="section deck-section">
+        <label>2. Upload your pitch deck (PDF):</label>
+        <div class="upload-container" id="upload-area">
+            <p>Drag & drop your PDF file here</p>
+            <p>or</p>
+            <input type="file" id="file-input" class="file-input" accept=".pdf">
+            <button class="upload-btn" id="select-file-btn">Select PDF File</button>
+            <div class="selected-file" id="selected-file"></div>
+        </div>
+        <div class="error" id="error-message"></div>
+    </div>
+    
+    <button class="submit-btn" id="submit-btn" disabled>Get Investor Feedback</button>
+    
+    <div class="loading" id="loading">
+        <p>Analyzing your pitch...</p>
+        <div class="spinner"></div>
+        <p>This may take up to a minute</p>
+    </div>
+    
+    <div class="result-container" id="result">
+        <h2>Analysis Results</h2>
+        <div class="summary-box" id="summary-box"></div>
+        <div class="investor-profile" id="investor-profile">
+            <h3>Matched Investor Profile</h3>
+            <p id="investor-name"></p>
+            <p id="investor-background"></p>
+        </div>
+        <div class="feedback-container">
+            <h3>Investor Feedback</h3>
+            <div class="feedback" id="feedback"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const selectFileBtn = document.getElementById('select-file-btn');
+            const selectedFile = document.getElementById('selected-file');
+            const submitBtn = document.getElementById('submit-btn');
+            const pitchTextArea = document.getElementById('pitch-text');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const investorName = document.getElementById('investor-name');
+            const investorBackground = document.getElementById('investor-background');
+            const feedback = document.getElementById('feedback');
+            const errorMessage = document.getElementById('error-message');
+            const exampleBtn = document.getElementById('example-btn');
+            const summaryBox = document.getElementById('summary-box');
+            
+            // Example elevator pitch
+            const examplePitch = "Our startup, EcoTrack, is developing a mobile app that helps consumers track and reduce their carbon footprint through daily choices. The app uses AI to analyze purchase patterns and suggest eco-friendly alternatives. We've built a prototype with 500 beta users who reduced their carbon impact by 20% on average. We have partnerships with 5 sustainable brands who pay for premium placement. Our team includes an ex-Google product manager and an environmental scientist. We're raising $500K to launch fully and reach 50,000 users in 12 months.";
+            
+            exampleBtn.addEventListener('click', function() {
+                pitchTextArea.value = examplePitch;
+                updateSubmitButton();
+            });
+            
+            // Check if form is ready to submit
+            function updateSubmitButton() {
+                const hasFile = fileInput.files.length > 0;
+                const hasPitchText = pitchTextArea.value.trim().length > 0;
+                
+                // Enable submit button if either pitch text or file is provided
+                submitBtn.disabled = !hasFile || !hasPitchText;
+                
+                if (hasFile && hasPitchText) {
+                    submitBtn.style.display = 'block';
+                } else {
+                    submitBtn.style.display = 'none';
+                }
+            }
+            
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('drag-over');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                handleFile(file);
+            });
+            
+            // Select file button
+            selectFileBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Monitor pitch text changes
+            pitchTextArea.addEventListener('input', updateSubmitButton);
+            
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length > 0) {
+                    handleFile(fileInput.files[0]);
+                }
+            });
+            
+            function handleFile(file) {
+                if (file && file.type === 'application/pdf') {
+                    selectedFile.textContent = file.name;
+                    errorMessage.style.display = 'none';
+                    updateSubmitButton();
+                } else {
+                    selectedFile.textContent = '';
+                    errorMessage.textContent = 'Please select a valid PDF file';
+                    errorMessage.style.display = 'block';
+                    updateSubmitButton();
+                }
+            }
+            
+            // Submit button
+            submitBtn.addEventListener('click', function() {
+                const file = fileInput.files[0];
+                const pitchText = pitchTextArea.value.trim();
+                
+                if (!file || !pitchText) {
+                    errorMessage.textContent = 'Please provide both elevator pitch and pitch deck';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('pitchText', pitchText);
+                
+                // Show loading, hide other elements
+                loading.style.display = 'block';
+                submitBtn.style.display = 'none';
+                result.style.display = 'none';
+                errorMessage.style.display = 'none';
+                
+                fetch('http://localhost:5001/api/upload/deck', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to process the pitch deck');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Display results
+                    investorName.textContent = data.investor.name;
+                    investorBackground.textContent = data.investor.background;
+                    feedback.textContent = data.feedback;
+                    
+                    // Display summary info
+                    if (data.summary) {
+                        summaryBox.innerHTML = `
+                            <strong>Analysis Summary:</strong><br>
+                            Analyzed pitch deck (${data.summary.deckPages} pages)<br>
+                            Analyzed elevator pitch (${pitchText.length} characters)<br>
+                            Matched with ${data.summary.profileMatched} investor profile
+                        `;
+                    }
+                    
+                    // Show result, hide loading
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loading.style.display = 'none';
+                    errorMessage.textContent = error.message || 'An error occurred while analyzing the pitch';
+                    errorMessage.style.display = 'block';
+                    submitBtn.style.display = 'block';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

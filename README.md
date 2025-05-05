@@ -1,116 +1,90 @@
-# Synthetic Research MVP
+# Synthetic Investor Feedback Platform
 
-A Next.js application that simulates audience research using AI-powered personas. This MVP allows you to test marketing messages and content with different audience segments, powered by OpenAI's GPT-4o model.
+## Purpose
 
-## Features
+This platform helps startup founders simulate high-quality investor feedback on their pitch materials. Founders can upload their elevator pitch and pitch deck, and the system returns structured, role-specific responses from synthetic VC personas.
 
-- **Multiple Personas**: Test your message with different audience segments:
-  - CMO at B2B Tech Company
-  - Founder of SMB
-  - Gen Z Consumer
-- **Flexible Input**: Choose between:
-  - Direct text input
-  - URL-based content analysis
-- **AI-Powered Analysis**: Get detailed, persona-specific feedback
-- **Automated Summaries**: Receive AI-generated insights from all personas
-- **PDF Reports**: Download comprehensive research reports
+This is not a toy. It's a fundraising decision-support engine built on top of LLMs, driven by real investor patterns, and designed to help founders clarify their pitch before stepping into real meetings.
 
-## How It Works
+## Current Features
 
-1. **Input Your Content**:
-   - Enter your marketing message directly as text
-   - Or provide a URL to analyze webpage content
-   - The system will automatically clean and process the content
+- Upload a **pitch deck (PDF)** and **elevator pitch (text)**
+- Parse and analyze pitch materials
+- Match to the most relevant **synthetic investor persona**
+- Generate realistic feedback via GPT-4:
+  - Strengths
+  - Risks
+  - Would they take the next meeting?
 
-2. **Persona Analysis**:
-   - Each persona provides their unique perspective
-   - Responses are generated using GPT-4o
-   - Feedback includes concerns, appeals, and suggestions
+## Coming Soon
 
-3. **Insight Generation**:
-   - AI analyzes all persona responses
-   - Identifies key themes and patterns
-   - Highlights common concerns and opportunities
+- Real-world VC and angel recommendations (via OpenVC / Crunchbase)
+- Notion-style feedback export
+- User authentication + saved feedback history
+- Pricing plans (pay-per-feedback or credit system)
 
-4. **Report Generation**:
-   - Download a professional PDF report
-   - Includes all persona responses and key insights
-   - Ready for sharing with stakeholders
+## Running the App Locally
 
-## Project Structure
-
+### Prerequisites
+- Node.js 18+
+- `.env.local` file with:
 ```
-/pages
-  /api
-    /generate.ts         # OpenAI API integration endpoint
-    /fetch-url-content.ts # URL content extraction endpoint
-    /summarize.ts        # Response summarization endpoint
-  /index.tsx            # Main UI component
+OPENAI_API_KEY=sk-...
 ```
 
-### API Endpoints
+### Installation
+```bash
+npm install
+```
 
-1. **/api/generate**
-   - Purpose: Generates persona-specific responses using GPT-4o
-   - Method: POST
-   - Input: `{ prompt: string }`
-   - Output: `{ result: string }`
+### Start Backend
+```bash
+node server/index.js
+```
 
-2. **/api/fetch-url-content**
-   - Purpose: Extracts and cleans content from a webpage
-   - Method: POST
-   - Input: `{ url: string }`
-   - Output: `{ content: string }`
+### Start Frontend (Dev)
+```bash
+npm run dev
+```
 
-3. **/api/summarize**
-   - Purpose: Generates insights from multiple persona responses
-   - Method: POST
-   - Input: `{ responses: Array<{ personaId: string, personaName: string, response: string }> }`
-   - Output: `{ summary: string }`
+App runs at:
+- Frontend: http://localhost:3001
+- Backend API: http://localhost:5001
 
-## Getting Started
+## File Structure Overview
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up environment variables:
-   ```bash
-   OPENAI_API_KEY=your_api_key_here
-   ```
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
+```
+/server
+  /routes
+    upload.js          → Handles deck + pitch upload, GPT call
+    simulate.js        → Early testing route (raw GPT queries)
+  /utils
+    investorSelector.js → Matches pitch content to investor profile
 
-## Next Milestones
+/interface_api (planned)
+  audienceBuilder.js
+  responseSimulator.js
 
-- [x] Basic persona response generation
-- [x] URL-based content analysis
-- [x] Automated response summarization
-- [x] PDF report generation
-- [ ] Add more diverse personas
-- [ ] Implement response comparison charts
-- [ ] Add sentiment analysis
-- [ ] Support for multiple languages
+/public
+  /uploads             → Temporary file storage
 
-## Documentation
+.env.local             → Your OpenAI API key
+```
 
-All code includes comprehensive inline documentation:
-- File-level documentation explaining purpose and functionality
-- Function-level documentation detailing parameters and return values
-- Clear error handling and type definitions
-- Consistent code style and formatting
+## Development Philosophy
 
-## Contributing
+- Keep core prompt structures modular
+- Match to realistic personas (seed, angel, growth)
+- Build general-purpose synthetic engine under a focused use case
+- Avoid overfitting — every system component is adaptable to future verticals (e.g., buyer simulation, onboarding testing, product research)
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+## Status
 
-## License
+- 🟢 Functional MVP complete: Upload + simulate investor response
+- 🟡 Integration in progress: investor recommendation
+- 🔴 Not started: user auth, export, pricing
 
-MIT 
+## Contact
+
+Built by Yan Yanko
+https://www.yanyanko.com 

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 200px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #response {
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OpenAI API Test</h1>
+        <p>Test the raw OpenAI connection for the Synthetic Research project</p>
+        
+        <div>
+            <h3>Enter your message:</h3>
+            <textarea id="messageInput">Explain what a synthetic persona is in 1 sentence.</textarea>
+        </div>
+        
+        <button id="sendButton">Send Message</button>
+        
+        <div>
+            <h3>Response:</h3>
+            <div id="response">Response will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const responseDiv = document.getElementById('response');
+
+            sendButton.addEventListener('click', async () => {
+                const message = messageInput.value.trim();
+                
+                if (!message) {
+                    responseDiv.textContent = 'Please enter a message';
+                    return;
+                }
+                
+                // Show loading state
+                sendButton.disabled = true;
+                sendButton.textContent = 'Sending...';
+                responseDiv.textContent = 'Waiting for response...';
+                document.body.classList.add('loading');
+                
+                try {
+                    const response = await fetch('http://localhost:5001/api/simulate/raw-test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        responseDiv.textContent = data.reply || 'No reply received';
+                    } else {
+                        responseDiv.textContent = `Error: ${data.error || 'Unknown error'}`;
+                    }
+                } catch (error) {
+                    responseDiv.textContent = `Network error: ${error.message}`;
+                } finally {
+                    // Reset loading state
+                    sendButton.disabled = false;
+                    sendButton.textContent = 'Send Message';
+                    document.body.classList.remove('loading');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

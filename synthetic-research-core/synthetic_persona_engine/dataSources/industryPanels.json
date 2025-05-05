@@ -1,0 +1,4 @@
+{
+  "_doc": "Contains industry panel distributions for use in persona generation. Example: { 'industry': { 'tech': 0.3, 'finance': 0.2, ... }, ... }",
+  "example": true
+} 
