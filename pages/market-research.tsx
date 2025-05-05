@@ -97,8 +97,6 @@ export default function MarketResearch() {
     
     // Show alert for now
     window.alert('PDF generation is temporarily disabled in this online version.');
-    
-    // Removed html2pdf functionality
   };
 
   /**

@@ -14,8 +14,6 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // This ensures browser-only code isn't executed during SSR
     if (isServer) {
-      // We don't need to alias html2pdf.js anymore since we're removing all static imports
-      
       // Prevent any client-side only modules from being bundled
       const originalExternals = config.externals;
       config.externals = [
@@ -44,4 +42,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig; 
+export default nextConfig; 
