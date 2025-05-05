@@ -1,5 +1,6 @@
 import express from 'express';
 import { openai } from '../services/openaiClient.js';
+import { matchRealInvestors } from '../../utils/realInvestorMatcher.js';
 
 const router = express.Router();
 
@@ -43,13 +44,46 @@ router.post('/simulate-pitch', async (req, res) => {
   });
 
   try {
+    // Extract startup profile with GPT-4
+    let startupProfile = null;
+    let realInvestors = [];
+    
+    try {
+      const profileExtract = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: "system",
+            content: "You are a startup analyst. Extract industry vertical, business model (B2B/B2C), and fundraising stage from the following pitch. Return JSON with format: {\"vertical\": string, \"model\": string, \"stage\": string}"
+          },
+          {
+            role: "user",
+            content: pitchText
+          }
+        ],
+        temperature: 0.3
+      });
+      
+      startupProfile = JSON.parse(profileExtract.choices[0].message.content);
+      console.log('Extracted startup profile:', startupProfile);
+      
+      // Match real-world investors
+      realInvestors = matchRealInvestors(startupProfile);
+      console.log(`Matched ${realInvestors.length} real investors`);
+    } catch (error) {
+      console.error('Error in startup profile extraction:', error);
+      // Continue with synthetic investor feedback only
+    }
+
     const responses = await Promise.all(calls);
     res.json({
       responses: responses.map((r, i) => ({
         role: investors[i].role,
         background: investors[i].background,
         feedback: r.choices[0].message.content
-      }))
+      })),
+      startupProfile,
+      realInvestors
     });
   } catch (err) {
     console.error("OpenAI error:", err);

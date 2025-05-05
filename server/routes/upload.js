@@ -24,6 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { openai } from '../services/openaiClient.js';
 import { matchInvestorFromText } from '../utils/investorSelector.js';
+import { matchRealInvestors } from '../../utils/realInvestorMatcher.js';
 
 const router = express.Router();
 
@@ -66,6 +67,39 @@ router.post('/deck', upload.single('file'), async (req, res) => {
     const investor = matchInvestorFromText(combinedText);
     console.log('Matched investor profile:', investor.name);
 
+    // Extract startup profile with GPT-4
+    let startupProfile = null;
+    let investorMatches = [];
+    
+    if (pitchText) {
+      try {
+        const profileExtract = await openai.chat.completions.create({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: "system",
+              content: "You are a startup analyst. Extract industry vertical, business model (B2B/B2C), and fundraising stage from the following pitch. Return JSON with format: {\"vertical\": string, \"model\": string, \"stage\": string}"
+            },
+            {
+              role: "user",
+              content: pitchText
+            }
+          ],
+          temperature: 0.3
+        });
+        
+        startupProfile = JSON.parse(profileExtract.choices[0].message.content);
+        console.log('Extracted startup profile:', startupProfile);
+        
+        // Match real-world investors
+        investorMatches = matchRealInvestors(startupProfile);
+        console.log(`Matched ${investorMatches.length} real investors`);
+      } catch (error) {
+        console.error('Error in startup profile extraction:', error);
+        // Continue with synthetic investor feedback only
+      }
+    }
+
     // Prepare the prompt for GPT-4
     let promptContent = '';
     if (pitchText) {
@@ -96,10 +130,13 @@ router.post('/deck', upload.single('file'), async (req, res) => {
     res.json({
       investor,
       feedback: feedback.choices[0].message.content,
+      startupProfile,
+      realInvestors: investorMatches,
       summary: {
         deckPages: pdfData.numpages,
         hasPitchText: !!pitchText,
-        profileMatched: investor.name
+        profileMatched: investor.name,
+        realInvestorsCount: investorMatches.length
       }
     });
   } catch (err) {

@@ -17,10 +17,8 @@
  * The component manages the entire research flow from input to results display.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-// PDF export temporarily disabled
-// import html2pdf from 'html2pdf.js';
 
 /**
  * Default personas for the research simulation

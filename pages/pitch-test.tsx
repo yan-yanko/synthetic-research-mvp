@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PitchResults from '../components/PitchResults';
 
 interface InvestorResponse {
   role: string;
@@ -6,10 +7,16 @@ interface InvestorResponse {
   feedback: string;
 }
 
+interface PitchFeedbackResponse {
+  responses: InvestorResponse[];
+  realInvestors?: any[];  // For the real investor matches
+}
+
 export default function PitchTest() {
   const [pitchText, setPitchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState<InvestorResponse[]>([]);
+  const [realInvestors, setRealInvestors] = useState<any[]>([]);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,8 +42,15 @@ export default function PitchTest() {
         throw new Error(errorData.error || 'Failed to get investor feedback');
       }
       
-      const data = await res.json();
+      const data: PitchFeedbackResponse = await res.json();
       setResponses(data.responses);
+      
+      // Set real investors if available
+      if (data.realInvestors && data.realInvestors.length > 0) {
+        setRealInvestors(data.realInvestors);
+      } else {
+        setRealInvestors([]);
+      }
     } catch (err) {
       console.error('Error simulating investor feedback:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -89,6 +103,16 @@ export default function PitchTest() {
               </div>
             ))}
           </div>
+          
+          {/* Show real investor recommendations if available */}
+          {realInvestors.length > 0 && (
+            <div className="mt-8">
+              <PitchResults 
+                feedback={responses[0]?.feedback || ''} 
+                investorMatches={realInvestors} 
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
