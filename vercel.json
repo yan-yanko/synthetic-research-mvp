@@ -3,7 +3,19 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "nodeVersion": "18.x"
+      }
     }
-  ]
+  ],
+  "env": {
+    "PDF_EXPORT_ENABLED": "false",
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "PDF_EXPORT_ENABLED": "false"
+    }
+  }
 }

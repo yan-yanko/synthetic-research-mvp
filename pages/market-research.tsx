@@ -19,8 +19,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-// PDF export temporarily disabled
-// import html2pdf from 'html2pdf.js';
+// PDF functionality is completely disabled for Vercel deployment
 
 /**
  * Default personas for the research simulation
@@ -92,27 +91,14 @@ export default function MarketResearch() {
     }
   };
 
-  // PDF generation temporarily disabled
+  // PDF generation disabled for deployment
   const generatePDF = () => {
     if (typeof window === 'undefined' || !reportRef.current) return;
     
-    // Dynamically import html2pdf only on client side
-    import('html2pdf.js').then(html2pdfModule => {
-      const element = reportRef.current;
-      if (!element) return;
-      
-      const opt = {
-        margin: 1,
-        filename: 'synthetic-research-report.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
-      html2pdfModule.default().set(opt).from(element).save();
-    }).catch(err => {
-      console.error('Error loading PDF module:', err);
-    });
+    // Show alert for now
+    window.alert('PDF generation is temporarily disabled in this online version.');
+    
+    // Removed html2pdf functionality
   };
 
   /**
