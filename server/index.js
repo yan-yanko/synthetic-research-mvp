@@ -9,8 +9,29 @@ import cors from 'cors';
 dotenv.config({ path: '.env.local' });
 
 const app = express();
-app.use(cors());
+
+// Configure CORS to explicitly allow the Vercel front-end domain
+const corsOptions = {
+  origin: [
+    'https://vcpitcher.com',
+    'https://synthetic-research-mvp.vercel.app',
+    'http://localhost:3000'
+  ],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Debugging middleware to log requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} Origin: ${req.headers.origin || 'unknown'}`);
+  next();
+});
 
 // Use index routes
 app.use('/', indexRoute);

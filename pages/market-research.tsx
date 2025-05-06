@@ -109,17 +109,32 @@ export default function MarketResearch() {
     setSummaryError('');
     const newResponses: Record<string, string> = {};
 
+    // Backend API URL
+    const generateApiUrl = 'https://synthetic-research-api.onrender.com/api/generate';
+    
     for (const persona of personas) {
       const fullPrompt = `${persona.promptPrefix}\n\nReact to the following message as if it were presented to you by a marketer:\n\n"${content}"\n\nWhat do you think? What concerns you? What appeals to you?`;
 
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: fullPrompt })
-      });
+      try {
+        console.log(`Sending prompt to ${generateApiUrl} for persona ${persona.id}`);
+        const res = await fetch(generateApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt })
+        });
 
-      const data = await res.json();
-      newResponses[persona.id] = data.result;
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`API error for ${persona.id}:`, errorText);
+          throw new Error(`Failed to get response for ${persona.name}`);
+        }
+
+        const data = await res.json();
+        newResponses[persona.id] = data.result;
+      } catch (error) {
+        console.error(`Error processing persona ${persona.id}:`, error);
+        newResponses[persona.id] = `Error: Unable to generate response for ${persona.name}`;
+      }
     }
 
     setResponses(newResponses);
@@ -128,7 +143,10 @@ export default function MarketResearch() {
     // Generate summary of all responses
     setSummaryLoading(true);
     try {
-      const summaryRes = await fetch('/api/summarize', {
+      const summarizeApiUrl = 'https://synthetic-research-api.onrender.com/api/summarize';
+      console.log(`Sending summarize request to ${summarizeApiUrl}`);
+      
+      const summaryRes = await fetch(summarizeApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,6 +159,8 @@ export default function MarketResearch() {
       });
 
       if (!summaryRes.ok) {
+        const errorText = await summaryRes.text();
+        console.error('Summary API error:', errorText);
         throw new Error('Failed to generate summary');
       }
 
@@ -162,17 +182,30 @@ export default function MarketResearch() {
   const handleSubmit = async () => {
     if (inputType === 'url') {
       try {
-        const res = await fetch('/api/fetch-url-content', {
+        const urlApiUrl = 'https://synthetic-research-api.onrender.com/api/fetch-url-content';
+        console.log(`Fetching content from URL: ${input} via ${urlApiUrl}`);
+        
+        const res = await fetch(urlApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: input })
         });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('URL fetch error:', errorText);
+          throw new Error('Failed to fetch URL content');
+        }
+        
         const data = await res.json();
         if (data.content) {
           await runResearch(data.content);
+        } else {
+          throw new Error('No content returned from URL');
         }
       } catch (error) {
         console.error('Error fetching URL content:', error);
+        setError('Failed to fetch content from the URL. Please try a different URL or use text input.');
       }
     } else {
       await runResearch(input);

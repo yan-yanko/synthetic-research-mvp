@@ -31,19 +31,53 @@ export default function PitchTest() {
     setLoading(true);
     setError('');
     
+    // Direct URL to the Render backend
+    const apiUrl = 'https://synthetic-research-api.onrender.com/api/pitch/simulate-pitch';
+    console.log(`Submitting pitch to ${apiUrl}`);
+    
     try {
-      const res = await fetch('/api/pitch/simulate-pitch', {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pitchText }),
       });
       
+      // Get the full response text for debugging
+      const responseText = await res.text();
+      console.log(`Response status: ${res.status}`);
+      console.log(`Response text length: ${responseText.length} chars`);
+      
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to get investor feedback');
+        let errorMessage = `Request failed with status ${res.status}`;
+        
+        // Try to parse the response as JSON
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (parseError) {
+          console.error('Error parsing response:', parseError);
+          // If parse failed, use the raw text with length limit
+          if (responseText.length > 100) {
+            errorMessage += `: ${responseText.substring(0, 100)}...`;
+          } else if (responseText) {
+            errorMessage += `: ${responseText}`;
+          }
+        }
+        
+        console.error('API error:', errorMessage);
+        throw new Error(errorMessage);
       }
       
-      const data: PitchFeedbackResponse = await res.json();
+      // Parse the successful response
+      let data: PitchFeedbackResponse;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error parsing successful response:', parseError);
+        throw new Error('Invalid response format from server');
+      }
+      
+      console.log('API request successful');
       setResponses(data.responses);
       
       // Set real investors if available
@@ -58,11 +92,14 @@ export default function PitchTest() {
         error: err,
         action: 'pitch_simulation',
         userInput: {
-          pitchTextLength: pitchText.length
+          pitchTextLength: pitchText.length,
+          apiUrl
         }
       });
       
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      console.error('Simulation error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -62,18 +62,53 @@ export default function DeckUploader() {
     setError('');
     setResult(null);
     
+    // Direct API URL to the Render back-end
+    const apiUrl = 'https://synthetic-research-api.onrender.com/api/upload/deck';
+    console.log(`Sending deck to ${apiUrl}`);
+    
     try {
-      const response = await fetch('/api/upload/deck', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData
       });
       
+      // Get the full response text for debugging
+      const responseText = await response.text();
+      console.log(`Response status: ${response.status}`);
+      console.log(`Response text length: ${responseText.length} chars`);
+      
+      // If not a successful response
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process the pitch deck');
+        let errorMessage = `Request failed with status ${response.status}`;
+        
+        // Try to parse the response as JSON
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (parseError) {
+          console.error('Error parsing response:', parseError);
+          // If parse failed, use the raw text with length limit
+          if (responseText.length > 100) {
+            errorMessage += `: ${responseText.substring(0, 100)}...`;
+          } else if (responseText) {
+            errorMessage += `: ${responseText}`;
+          }
+        }
+        
+        console.error('API error:', errorMessage);
+        throw new Error(errorMessage);
       }
       
-      const data = await response.json();
+      // Parse the successful response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Error parsing successful response:', parseError);
+        throw new Error('Invalid response format from server');
+      }
+      
+      console.log('API request successful');
       setResult(data);
     } catch (err) {
       // Log the error with our reporter utility
@@ -83,11 +118,14 @@ export default function DeckUploader() {
         userInput: {
           hasPitchText: Boolean(pitchText.trim()),
           fileSize: file?.size,
-          fileName: file?.name
+          fileName: file?.name,
+          apiUrl
         }
       });
       
-      setError(err instanceof Error ? err.message : 'An error occurred while analyzing the pitch');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while analyzing the pitch';
+      console.error('Submission error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
