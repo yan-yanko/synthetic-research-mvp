@@ -8,7 +8,7 @@ export function setCorsHeaders(req: NextApiRequest, res: NextApiResponse): boole
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', 'https://www.vcpitcher.com');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.status(200).end();
     return true; // Request handled
@@ -16,7 +16,7 @@ export function setCorsHeaders(req: NextApiRequest, res: NextApiResponse): boole
 
   // Set CORS headers for actual request
   res.setHeader('Access-Control-Allow-Origin', 'https://www.vcpitcher.com');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   return false; // Request not handled, continue processing
