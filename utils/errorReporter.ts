@@ -23,7 +23,7 @@ export async function reportError({ error, action, url, userInput }: ErrorReport
     };
 
     // Silently log errors to the backend
-    await fetch('/api/log-error', {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/log-error`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
