@@ -61,6 +61,7 @@ export default function MarketResearch() {
   const [summary, setSummary] = useState<string>('');
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const [feedback, setFeedback] = useState<'useful' | 'notSure' | 'offTarget' | null>(null);
   const [showThankYou, setShowThankYou] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -180,6 +181,8 @@ export default function MarketResearch() {
    * For URL input, fetches content first before running research
    */
   const handleSubmit = async () => {
+    setError('');
+    
     if (inputType === 'url') {
       try {
         const urlApiUrl = 'https://synthetic-research-api.onrender.com/api/fetch-url-content';
@@ -404,6 +407,10 @@ export default function MarketResearch() {
       >
         {loading ? 'Running Research...' : 'Run Research'}
       </button>
+
+      {error && (
+        <div className="mt-2 text-red-600">{error}</div>
+      )}
 
       {Object.entries(responses).length > 0 && (
         <div className="mt-6 space-y-4">
