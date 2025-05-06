@@ -10,17 +10,14 @@ dotenv.config({ path: '.env.local' });
 
 const app = express();
 
-// Configure CORS to explicitly allow the front-end domains
-const allowedOrigins = ['https://www.vcpitcher.com', 'https://vcpitcher.com', 'https://synthetic-research-mvp.vercel.app', 'http://localhost:3000'];
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+// Configure CORS to explicitly allow the frontend domain
+app.use(
+  cors({
+    origin: 'https://www.vcpitcher.com',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  })
+);
 
 app.use(express.json());
 
