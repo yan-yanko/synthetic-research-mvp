@@ -19,9 +19,12 @@ export default async function handler(
 ) {
   console.log("Received pitch deck upload request");
 
-  // Handle CORS
-  if (setCorsHeaders(req, res)) {
-    return; // Preflight request handled
+  // Set CORS headers
+  setCorsHeaders(req, res);
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
   // Only allow POST method

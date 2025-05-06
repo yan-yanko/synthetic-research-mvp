@@ -62,8 +62,8 @@ export default function DeckUploader() {
     setError('');
     setResult(null);
     
-    // Direct API URL to the Render back-end
-    const apiUrl = 'https://synthetic-research-api.onrender.com/api/upload/deck';
+    // Use local Next.js API endpoint
+    const apiUrl = '/api/upload/deck';
     console.log(`Sending deck to ${apiUrl}`);
     
     try {
