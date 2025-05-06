@@ -33,115 +33,115 @@ export default async function handler(
         const form = new formidable.IncomingForm();
         console.log('Parsing form data');
         
-        form.parse(req, async (err: Error | null, fields: formidable.Fields<string>, files: formidable.Files<string>) => {
-          if (err) {
-            console.error('Error parsing form:', err);
-            await reportError({
-              error: err,
-              action: 'api_upload_deck_parse_form',
-            });
-            return res.status(500).json({ error: 'Failed to process the form' });
-          }
-
-          try {
-            const file = files.file;
-            const pitchText = fields.pitchText;
-            
-            if (!file) {
-              console.warn('No file uploaded');
-              return res.status(400).json({ error: 'No file uploaded' });
+        // Use a promise to wrap the form.parse callback
+        const { fields, files } = await new Promise<{ fields: formidable.Fields<string>; files: formidable.Files<string> }>((resolve, reject) => {
+          form.parse(req, (err, fields, files) => {
+            if (err) {
+              console.error('Error parsing form:', err);
+              return reject(err);
             }
-            
-            console.log('File received:', 
-              Array.isArray(file) ? 
-                (file as formidable.File[])[0].originalFilename : 
-                (file as formidable.File).originalFilename);
-
-            // Create a FormData object to send to our backend
-            const formData = new FormData();
-            
-            // Add the pitch text
-            if (pitchText) {
-              console.log('Pitch text length:', pitchText.toString().length);
-              formData.append('pitchText', pitchText.toString());
-            } else {
-              console.warn('No pitch text provided');
-            }
-            
-            try {
-              // Add the file
-              // For files, we need to read from the path and append the buffer with the right filename
-              const fileObj = Array.isArray(file) ? file[0] : file;
-              console.log('Reading file from path:', fileObj.filepath);
-              
-              const fileBuffer = await promisify(fs.readFile)(fileObj.filepath);
-              console.log('File read successfully, size:', fileBuffer.length);
-              
-              const blob = new Blob([fileBuffer], { type: fileObj.mimetype || 'application/octet-stream' });
-              formData.append('file', blob, fileObj.originalFilename || 'uploaded-file.pdf');
-
-              // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש באפליקציית שרת מאוחסנת
-              const apiUrl = process.env.NODE_ENV === 'development' 
-                ? 'http://localhost:5001/api/upload/deck'
-                : 'https://synthetic-research-api.onrender.com/api/upload/deck';
-              
-              console.log('Sending request to backend:', apiUrl);
-              
-              const response = await axios.post(apiUrl, formData, {
-                headers: {
-                  'Content-Type': 'multipart/form-data',
-                },
-              });
-              
-              console.log('Backend response received, status:', response.status);
-
-              // Clean up temporary file
-              try {
-                console.log('Cleaning up temporary file:', fileObj.filepath);
-                await promisify(fs.unlink)(fileObj.filepath);
-                console.log('Temporary file cleaned up successfully');
-              } catch (cleanupError) {
-                console.error('Error cleaning up temporary file:', cleanupError);
-                // Continue despite cleanup error
-              }
-
-              return res.status(200).json(response.data);
-            } catch (fileError: any) {
-              console.error('Error processing file:', fileError);
-              console.error('File error details:', fileError.message);
-              
-              // Try to clean up file even if there was an error
-              try {
-                const fileObj = Array.isArray(file) ? file[0] : file;
-                if (fileObj && fileObj.filepath && fs.existsSync(fileObj.filepath)) {
-                  await promisify(fs.unlink)(fileObj.filepath);
-                  console.log('Cleaned up temporary file after error');
-                }
-              } catch (cleanupError) {
-                console.error('Error in cleanup after file error:', cleanupError);
-              }
-              
-              throw fileError; // Re-throw to be caught by the outer catch
-            }
-          } catch (error: any) {
-            console.error('Error in form processing:', error);
-            console.error('Error stack:', error.stack);
-            
-            await reportError({
-              error: error,
-              action: 'api_upload_deck_backend_request',
-              userInput: {
-                hasFile: !!files.file,
-                hasPitchText: !!fields.pitchText
-              }
-            });
-            
-            return res.status(500).json({ 
-              error: 'Failed to process the request',
-              details: error.message 
-            });
-          }
+            resolve({ fields, files });
+          });
         });
+        
+        try {
+          const file = files.file;
+          const pitchText = fields.pitchText;
+          
+          if (!file) {
+            console.warn('No file uploaded');
+            return res.status(400).json({ error: 'No file uploaded' });
+          }
+          
+          console.log('File received:', 
+            Array.isArray(file) ? 
+              (file as formidable.File[])[0].originalFilename : 
+              (file as formidable.File).originalFilename);
+
+          // Create a FormData object to send to our backend
+          const formData = new FormData();
+          
+          // Add the pitch text
+          if (pitchText) {
+            console.log('Pitch text length:', pitchText.toString().length);
+            formData.append('pitchText', pitchText.toString());
+          } else {
+            console.warn('No pitch text provided');
+          }
+          
+          try {
+            // Add the file
+            // For files, we need to read from the path and append the buffer with the right filename
+            const fileObj = Array.isArray(file) ? file[0] : file;
+            console.log('Reading file from path:', fileObj.filepath);
+            
+            const fileBuffer = await promisify(fs.readFile)(fileObj.filepath);
+            console.log('File read successfully, size:', fileBuffer.length);
+            
+            const blob = new Blob([fileBuffer], { type: fileObj.mimetype || 'application/octet-stream' });
+            formData.append('file', blob, fileObj.originalFilename || 'uploaded-file.pdf');
+
+            // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש באפליקציית שרת מאוחסנת
+            const apiUrl = process.env.NODE_ENV === 'development' 
+              ? 'http://localhost:5001/api/upload/deck'
+              : 'https://synthetic-research-api.onrender.com/api/upload/deck';
+            
+            console.log('Sending request to backend:', apiUrl);
+            
+            const response = await axios.post(apiUrl, formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+            
+            console.log('Backend response received, status:', response.status);
+
+            // Clean up temporary file
+            try {
+              console.log('Cleaning up temporary file:', fileObj.filepath);
+              await promisify(fs.unlink)(fileObj.filepath);
+              console.log('Temporary file cleaned up successfully');
+            } catch (cleanupError) {
+              console.error('Error cleaning up temporary file:', cleanupError);
+              // Continue despite cleanup error
+            }
+
+            return res.status(200).json(response.data);
+          } catch (fileError: any) {
+            console.error('Error processing file:', fileError);
+            console.error('File error details:', fileError.message);
+            
+            // Try to clean up file even if there was an error
+            try {
+              const fileObj = Array.isArray(file) ? file[0] : file;
+              if (fileObj && fileObj.filepath && fs.existsSync(fileObj.filepath)) {
+                await promisify(fs.unlink)(fileObj.filepath);
+                console.log('Cleaned up temporary file after error');
+              }
+            } catch (cleanupError) {
+              console.error('Error in cleanup after file error:', cleanupError);
+            }
+            
+            throw fileError; // Re-throw to be caught by the outer catch
+          }
+        } catch (error: any) {
+          console.error('Error in form processing:', error);
+          console.error('Error stack:', error.stack);
+          
+          await reportError({
+            error: error,
+            action: 'api_upload_deck_backend_request',
+            userInput: {
+              hasFile: !!files.file,
+              hasPitchText: !!fields.pitchText
+            }
+          });
+          
+          return res.status(500).json({ 
+            error: 'Failed to process the request',
+            details: error.message 
+          });
+        }
       } catch (parseError: any) {
         console.error('Error in form parsing setup:', parseError);
         console.error('Parse error stack:', parseError.stack);
