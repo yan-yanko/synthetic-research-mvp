@@ -1,11 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import { reportError } from '../../utils/errorReporter';
+import { setCorsHeaders } from '../../utils/cors';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Handle CORS
+  if (setCorsHeaders(req, res)) {
+    return; // Preflight request handled
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

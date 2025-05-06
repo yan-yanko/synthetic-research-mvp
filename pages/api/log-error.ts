@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { setCorsHeaders } from '../../utils/cors';
 
 interface ErrorLogPayload {
   message: string;
@@ -13,6 +14,11 @@ export default function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Handle CORS
+  if (setCorsHeaders(req, res)) {
+    return; // Preflight request handled
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

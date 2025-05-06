@@ -4,6 +4,7 @@ import fs from 'fs';
 import { promisify } from 'util';
 import axios from 'axios';
 import { reportError } from '../../../utils/errorReporter';
+import { setCorsHeaders } from '../../../utils/cors';
 
 // חשוב: זה מבטל את הברירת המחדל של next.js לטפל ב-body כ-JSON
 export const config = {
@@ -17,6 +18,11 @@ export default async function handler(
   res: NextApiResponse
 ) {
   console.log("Received pitch deck upload request");
+
+  // Handle CORS
+  if (setCorsHeaders(req, res)) {
+    return; // Preflight request handled
+  }
 
   try {
     // Top-level try-catch for handling any unexpected errors
