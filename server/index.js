@@ -11,13 +11,11 @@ dotenv.config({ path: '.env.local' });
 const app = express();
 
 // Configure CORS to explicitly allow the frontend domain
-app.use(
-  cors({
-    origin: 'https://www.vcpitcher.com',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-  })
-);
+app.use(cors({
+  origin: 'https://www.vcpitcher.com',
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
 
 app.use(express.json());
 
