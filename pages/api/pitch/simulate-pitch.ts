@@ -11,10 +11,10 @@ export default async function handler(
   }
 
   try {
-    // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש ב-API הפנימי
+    // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש באפליקציית שרת מאוחסנת
     const apiUrl = process.env.NODE_ENV === 'development' 
       ? 'http://localhost:5001/api/pitch/simulate-pitch'
-      : 'http://localhost:5001/api/pitch/simulate-pitch'; // בסביבת ייצור, צריך להשתמש בכתובת השרת האמיתית
+      : 'https://synthetic-research-api.onrender.com/api/pitch/simulate-pitch';
 
     const response = await axios.post(apiUrl, req.body);
     return res.status(200).json(response.data);

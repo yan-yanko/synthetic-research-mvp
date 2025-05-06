@@ -57,10 +57,10 @@ export default async function handler(
         const blob = new Blob([fileBuffer], { type: fileObj.mimetype || 'application/octet-stream' });
         formData.append('file', blob, fileObj.originalFilename || 'uploaded-file.pdf');
 
-        // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש ב-API הפנימי
+        // בסביבת פיתוח שלח לשרת המקומי, אחרת השתמש באפליקציית שרת מאוחסנת
         const apiUrl = process.env.NODE_ENV === 'development' 
           ? 'http://localhost:5001/api/upload/deck'
-          : 'http://localhost:5001/api/upload/deck'; // בסביבת ייצור, צריך להשתמש בכתובת השרת האמיתית
+          : 'https://synthetic-research-api.onrender.com/api/upload/deck';
 
         const response = await axios.post(apiUrl, formData, {
           headers: {
