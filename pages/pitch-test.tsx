@@ -31,7 +31,7 @@ export default function PitchTest() {
     setError('');
     
     try {
-      const res = await fetch('http://localhost:5001/api/pitch/simulate-pitch', {
+      const res = await fetch('/api/pitch/simulate-pitch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pitchText }),

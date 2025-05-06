@@ -1,5 +1,5 @@
 export async function simulate(prompt, audienceConfig) {
-  const res = await fetch('http://localhost:5001/api/simulate', {
+  const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, audienceConfig }),

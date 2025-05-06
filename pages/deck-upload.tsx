@@ -62,7 +62,7 @@ export default function DeckUploader() {
     setResult(null);
     
     try {
-      const response = await fetch('http://localhost:5001/api/upload/deck', {
+      const response = await fetch('/api/upload/deck', {
         method: 'POST',
         body: formData
       });
