@@ -88,3 +88,13 @@ App runs at:
 
 Built by Yan Yanko
 https://www.yanyanko.com 
+
+## Development Notes
+
+### Error Logging
+
+Frontend errors are logged via POST to `/api/log-error`:
+- Captures message, stack, route, and input
+- Stored in backend logs (console for now)
+
+This helps debug production issues (like fetch failures or missing endpoints). 

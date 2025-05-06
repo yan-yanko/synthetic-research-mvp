@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
+import { reportError } from '../../utils/errorReporter';
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,6 +19,14 @@ export default async function handler(
     const response = await axios.post(apiUrl, req.body);
     return res.status(200).json(response.data);
   } catch (error: any) {
+    await reportError({
+      error,
+      action: 'api_simulate',
+      userInput: {
+        bodySize: JSON.stringify(req.body || {}).length
+      }
+    });
+    
     console.error('Error handling simulate request:', error);
     return res.status(500).json({ 
       error: 'Failed to handle simulate request',

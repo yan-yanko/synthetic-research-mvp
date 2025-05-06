@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import PitchResults from '../components/PitchResults';
+import { reportError } from '../utils/errorReporter';
 
 export default function DeckUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -75,7 +76,17 @@ export default function DeckUploader() {
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      console.error('Error:', err);
+      // Log the error with our reporter utility
+      await reportError({
+        error: err,
+        action: 'pitch_deck_upload',
+        userInput: {
+          hasPitchText: Boolean(pitchText.trim()),
+          fileSize: file?.size,
+          fileName: file?.name
+        }
+      });
+      
       setError(err instanceof Error ? err.message : 'An error occurred while analyzing the pitch');
     } finally {
       setLoading(false);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PitchResults from '../components/PitchResults';
+import { reportError } from '../utils/errorReporter';
 
 interface InvestorResponse {
   role: string;
@@ -52,7 +53,15 @@ export default function PitchTest() {
         setRealInvestors([]);
       }
     } catch (err) {
-      console.error('Error simulating investor feedback:', err);
+      // Log the error with our reporter utility
+      await reportError({
+        error: err,
+        action: 'pitch_simulation',
+        userInput: {
+          pitchTextLength: pitchText.length
+        }
+      });
+      
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);

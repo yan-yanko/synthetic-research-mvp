@@ -3,6 +3,7 @@ import formidable from 'formidable';
 import fs from 'fs';
 import { promisify } from 'util';
 import axios from 'axios';
+import { reportError } from '../../../utils/errorReporter';
 
 // חשוב: זה מבטל את הברירת המחדל של next.js לטפל ב-body כ-JSON
 export const config = {
@@ -25,6 +26,10 @@ export default async function handler(
     
     form.parse(req, async (err: Error | null, fields: formidable.Fields<string>, files: formidable.Files<string>) => {
       if (err) {
+        await reportError({
+          error: err,
+          action: 'api_upload_deck_parse_form',
+        });
         console.error('Error parsing form:', err);
         return res.status(500).json({ error: 'Failed to process the form' });
       }
@@ -68,6 +73,15 @@ export default async function handler(
 
         return res.status(200).json(response.data);
       } catch (error: any) {
+        await reportError({
+          error: error,
+          action: 'api_upload_deck_backend_request',
+          userInput: {
+            hasFile: !!files.file,
+            hasPitchText: !!fields.pitchText
+          }
+        });
+        
         console.error('Error processing request:', error);
         return res.status(500).json({ 
           error: 'Failed to process the request',
@@ -76,6 +90,11 @@ export default async function handler(
       }
     });
   } catch (error: any) {
+    await reportError({
+      error: error,
+      action: 'api_upload_deck_handler',
+    });
+    
     console.error('Error handling request:', error);
     return res.status(500).json({ 
       error: 'Failed to handle request',
