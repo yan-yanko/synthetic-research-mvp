@@ -213,7 +213,7 @@ export default function DeckUploader() {
             >
               Select PDF File
             </button>
-            {file && typeof file === 'object' && file.name ? (
+            {typeof file === 'object' && file?.name ? (
               <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
             ) : (
               <div className="text-red-600 text-sm">No file selected</div>
