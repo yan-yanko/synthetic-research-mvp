@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import formidable from 'formidable';
+import { IncomingForm, Fields, Files } from 'formidable';
 import fs from 'fs';
 import { promisify } from 'util';
 import path from 'path';
@@ -35,7 +35,7 @@ export default async function handler(
 
   try {
     // Configure formidable
-    const form = new formidable.IncomingForm({
+    const form = new IncomingForm({
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
       filter: (part) => {
@@ -46,7 +46,7 @@ export default async function handler(
     console.log('Parsing form data');
     
     // Parse the form using a Promise wrapper
-    const { fields, files } = await new Promise<{ fields: formidable.Fields<string>; files: formidable.Files<string> }>((resolve, reject) => {
+    const { fields, files } = await new Promise<{ fields: Fields; files: Files }>((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
           console.error('Error parsing form:', err);
