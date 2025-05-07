@@ -197,8 +197,8 @@ export default function DeckUploader() {
             >
               Select PDF File
             </button>
-            {file && (
-              <div className="mt-2 font-bold text-green-600">{file.name}</div>
+            {file?.name && (
+              <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
             )}
           </div>
         </div>
