@@ -252,6 +252,9 @@ export default function DeckUploader() {
         responseText = await response.text();
         console.log(`Response status: ${response.status}`);
         console.log(`Response text length: ${responseText?.length || 0} chars`);
+        
+        // Log the full response for debugging
+        console.log("Full response from backend:", response);
       } catch (err) {
         console.error('Error reading response:', err);
         setError('Error processing server response');
@@ -542,6 +545,60 @@ export default function DeckUploader() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            
+            {result?.feedback && (
+              <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 space-y-4">
+                <h3 className="text-xl font-bold mb-2">Detailed Feedback</h3>
+                
+                {Array.isArray(result.feedback.strengths) && result.feedback.strengths.length > 0 && (
+                  <div>
+                    <strong className="text-green-700 flex items-center">
+                      <span className="mr-2">📈</span> Strengths:
+                    </strong>
+                    <ul className="list-disc ml-5 mt-2 space-y-1">
+                      {result.feedback.strengths.map((strength: string, i: number) => (
+                        <li key={i} className="text-gray-700">{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {Array.isArray(result.feedback.concerns) && result.feedback.concerns.length > 0 && (
+                  <div>
+                    <strong className="text-red-700 flex items-center">
+                      <span className="mr-2">⚠️</span> Concerns:
+                    </strong>
+                    <ul className="list-disc ml-5 mt-2 space-y-1">
+                      {result.feedback.concerns.map((concern: string, i: number) => (
+                        <li key={i} className="text-gray-700">{concern}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {result.feedback.recommendation && (
+                  <div>
+                    <strong className="text-blue-700 flex items-center">
+                      <span className="mr-2">🤝</span> Meeting Recommendation:
+                    </strong>
+                    <p className="ml-7 mt-1 font-medium">{result.feedback.recommendation}</p>
+                  </div>
+                )}
+                
+                {Array.isArray(result.feedback.suggestedInvestors) && result.feedback.suggestedInvestors.length > 0 && (
+                  <div>
+                    <strong className="text-purple-700 flex items-center">
+                      <span className="mr-2">🎯</span> Suggested Investors:
+                    </strong>
+                    <ul className="list-disc ml-5 mt-2 space-y-1">
+                      {result.feedback.suggestedInvestors.map((investor: string, i: number) => (
+                        <li key={i} className="text-gray-700">{investor}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
             
