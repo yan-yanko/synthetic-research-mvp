@@ -17,7 +17,8 @@
  * The component manages the entire research flow from input to results display.
  */
 
-import React from 'react';
+import { useState } from 'react';
+import Head from 'next/head';
 import Link from 'next/link';
 
 /**
@@ -53,38 +54,73 @@ const personas = [
  * - Results display
  */
 export default function Home() {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <main className="max-w-3xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-4">Would a real investor take your meeting?</h1>
-      <p className="mb-6 text-gray-700">
-        Upload your pitch and get realistic, investor-style feedback in under 5 minutes.
-      </p>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <Head>
+        <title>Synthetic Investor Feedback Platform</title>
+        <meta name="description" content="Get realistic investor feedback on your pitch materials using AI" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
 
-      <Link
-        href="/deck-upload"
-        className="inline-block bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
-      >
-        Upload Pitch & Get Feedback
-      </Link>
-
-      <section className="mt-16 space-y-8">
-        <h2 className="text-xl font-semibold">How It Works</h2>
-        <ol className="list-decimal list-inside text-gray-800 space-y-2">
-          <li>Upload your pitch deck and 1-sentence elevator pitch.</li>
-          <li>We simulate an investor's reaction using real investment logic.</li>
-          <li>You get back honest feedback — and see which real investors might be a fit.</li>
-        </ol>
-      </section>
-
-      <section className="mt-16">
-        <h2 className="text-xl font-semibold mb-4">Example Feedback</h2>
-        <div className="bg-gray-100 p-4 rounded">
-          <strong>Seed-stage SaaS VC:</strong>
-          <p className="mt-2 text-sm text-gray-700">
-            "Your market sizing is compelling, but I'd need to see more traction to move forward. I'd probably pass for now, but would ask for an update in 90 days."
+      <main className="container mx-auto px-4 py-16">
+        {/* Hero Section */}
+        <div className="text-center mb-20">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Get Realistic Investor Feedback
+            <span className="text-blue-600"> Before Your Meeting</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Upload your pitch deck and elevator pitch to receive structured, role-specific feedback from synthetic VC personas powered by advanced AI.
           </p>
+          <Link 
+            href="/upload"
+            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            Start Getting Feedback
+            <span className={`ml-2 transition-transform ${isHovered ? 'translate-x-1' : ''}`}>→</span>
+          </Link>
         </div>
-      </section>
-    </main>
+
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-3 gap-8 mb-20">
+          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-blue-600 text-2xl mb-4">📊</div>
+            <h3 className="text-xl font-semibold mb-2">Upload & Analyze</h3>
+            <p className="text-gray-600">Upload your pitch deck and elevator pitch for comprehensive analysis</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-blue-600 text-2xl mb-4">🎯</div>
+            <h3 className="text-xl font-semibold mb-2">Smart Matching</h3>
+            <p className="text-gray-600">Get matched with the most relevant synthetic investor persona</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-blue-600 text-2xl mb-4">💡</div>
+            <h3 className="text-xl font-semibold mb-2">Detailed Feedback</h3>
+            <p className="text-gray-600">Receive structured feedback on strengths, risks, and next steps</p>
+          </div>
+        </div>
+
+        {/* Coming Soon Section */}
+        <div className="bg-gray-50 rounded-2xl p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">Coming Soon</h2>
+          <div className="flex flex-wrap justify-center gap-4 text-gray-600">
+            <span className="px-4 py-2 bg-white rounded-full">Real VC Recommendations</span>
+            <span className="px-4 py-2 bg-white rounded-full">Notion Export</span>
+            <span className="px-4 py-2 bg-white rounded-full">Feedback History</span>
+            <span className="px-4 py-2 bg-white rounded-full">Pricing Plans</span>
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-gray-50 py-8 mt-20">
+        <div className="container mx-auto px-4 text-center text-gray-600">
+          <p>Built by Yan Yanko • <a href="https://www.yanyanko.com" className="text-blue-600 hover:underline">yanyanko.com</a></p>
+        </div>
+      </footer>
+    </div>
   );
 } 
