@@ -49,7 +49,12 @@ export default function DeckUploader() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file || !pitchText.trim()) {
+    if (!file || typeof file !== 'object' || !file.name) {
+      setError('Please select a valid file.');
+      console.error('No file selected or invalid file object', file);
+      return;
+    }
+    if (!pitchText.trim()) {
       setError('Please provide both elevator pitch and pitch deck');
       return;
     }
@@ -206,7 +211,9 @@ export default function DeckUploader() {
               Select PDF File
             </button>
             {(() => {
-              if (!file) {
+              if (!file || typeof file !== 'object' || !file.name) {
+                setError('Please select a valid file.');
+                console.error('No file selected or invalid file object', file);
                 return null;
               }
               console.log("file:", file);
