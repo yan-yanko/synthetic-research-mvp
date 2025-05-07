@@ -188,7 +188,15 @@ export default function DeckUploader() {
               ref={fileInputRef}
               accept=".pdf"
               className="hidden"
-              onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const selected = e.target.files?.[0];
+                if (!selected) {
+                  setError('Please select a file before submitting');
+                  setFile(null);
+                  return;
+                }
+                handleFileSelect(selected);
+              }}
             />
             <button
               type="button"
