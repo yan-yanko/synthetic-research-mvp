@@ -205,9 +205,15 @@ export default function DeckUploader() {
             >
               Select PDF File
             </button>
-            {file?.name && (
-              <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
-            )}
+            {(() => {
+              if (!file) {
+                return null;
+              }
+              console.log("file:", file);
+              return (
+                <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
+              );
+            })()}
           </div>
         </div>
         
