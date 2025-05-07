@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PitchResults from '../components/PitchResults';
 import { reportError } from '../utils/errorReporter';
+import FeedbackViewer, { FeedbackItem } from '../components/FeedbackViewer';
+import { formatFeedbackData } from '../utils/feedback';
 
 // Error Boundary specifically for the file upload component
 class FileUploadErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -83,6 +85,7 @@ export default function DeckUploader() {
   const [result, setResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadAreaRef = useRef<HTMLDivElement>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   
   // Safely synchronize file state with ref
   useEffect(() => {
@@ -461,174 +464,293 @@ export default function DeckUploader() {
         )}
         
         {result && (
-          <div className="mt-8 border rounded-md p-6">
-            <h2 className="text-2xl font-bold mb-4">🧠 Simulated Investor Response</h2>
-            
-            <div className="bg-blue-50 p-4 rounded-md mb-4 text-sm">
-              <p>Analysis completed on {new Date().toLocaleDateString()}</p>
-              <p>Analyzed {result?.summary?.deckPages || '?'} page pitch deck and {pitchText?.length || 0} character elevator pitch</p>
+          <>
+            <div className="mt-8 border rounded-md p-6">
+              <h2 className="text-2xl font-bold mb-4">🧠 Simulated Investor Response</h2>
+              
+              <div className="bg-blue-50 p-4 rounded-md mb-4 text-sm">
+                <p>Analysis completed on {new Date().toLocaleDateString()}</p>
+                <p>Analyzed {result?.summary?.deckPages || '?'} page pitch deck and {pitchText?.length || 0} character elevator pitch</p>
+              </div>
+              
+              {result?.investor && (
+                <div className="bg-gray-50 p-4 rounded-md mb-6">
+                  <h3 className="text-xl font-bold mb-3">{result.investor.name || 'Investor'} Feedback</h3>
+                  {result.investor.background && (
+                    <p className="text-gray-600 mb-4">{result.investor.background}</p>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-bold text-green-700 flex items-center">
+                        <span className="mr-2">✓</span> What's Compelling
+                      </h4>
+                      <div className="mt-2 pl-6">
+                        {/* Safely extract strengths section from feedback */}
+                        <div className="whitespace-pre-line">
+                          {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Strengths')
+                            ? result.feedback.split('Strengths')[1].split('Concerns')[0] 
+                            : 'Strengths section not found in feedback'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-bold text-red-700 flex items-center">
+                        <span className="mr-2">⚠</span> What's Risky
+                      </h4>
+                      <div className="mt-2 pl-6">
+                        {/* Safely extract concerns section from feedback */}
+                        <div className="whitespace-pre-line">
+                          {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Concerns')
+                            ? result.feedback.split('Concerns')[1].split('Would you take a meeting')[0] 
+                            : 'Concerns section not found in feedback'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-bold text-blue-700 flex items-center">
+                        <span className="mr-2">🤝</span> Meeting Decision
+                      </h4>
+                      <div className="mt-2 pl-6">
+                        {/* Safely extract meeting decision from feedback */}
+                        <div className="whitespace-pre-line font-medium">
+                          {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Would you take a meeting')
+                            ? result.feedback.split('Would you take a meeting')[1]
+                            : 'Meeting decision not found in feedback'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {result?.realInvestors && Array.isArray(result.realInvestors) && result.realInvestors.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4">🔗 Real Investor Recommendations</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {result.realInvestors.slice(0, 3).map((investor: any, index: number) => (
+                      <div key={index} className="border rounded-md p-4 bg-white hover:shadow-md transition">
+                        <h4 className="font-bold">{investor?.name || 'Investor'}</h4>
+                        {investor?.thesis && (
+                          <p className="text-sm text-gray-600 my-2">{investor.thesis}</p>
+                        )}
+                        {investor?.website && (
+                          <a 
+                            href={investor.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm"
+                          >
+                            Visit website
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {result?.feedback && (
+                <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 space-y-4">
+                  <h3 className="text-xl font-bold mb-2">Detailed Feedback</h3>
+                  
+                  {Array.isArray(result.feedback.strengths) && result.feedback.strengths.length > 0 && (
+                    <div>
+                      <strong className="text-green-700 flex items-center">
+                        <span className="mr-2">📈</span> Strengths:
+                      </strong>
+                      <ul className="list-disc ml-5 mt-2 space-y-1">
+                        {result.feedback.strengths.map((strength: string, i: number) => (
+                          <li key={i} className="text-gray-700">{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {Array.isArray(result.feedback.concerns) && result.feedback.concerns.length > 0 && (
+                    <div>
+                      <strong className="text-red-700 flex items-center">
+                        <span className="mr-2">⚠️</span> Concerns:
+                      </strong>
+                      <ul className="list-disc ml-5 mt-2 space-y-1">
+                        {result.feedback.concerns.map((concern: string, i: number) => (
+                          <li key={i} className="text-gray-700">{concern}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {result.feedback.recommendation && (
+                    <div>
+                      <strong className="text-blue-700 flex items-center">
+                        <span className="mr-2">🤝</span> Meeting Recommendation:
+                      </strong>
+                      <p className="ml-7 mt-1 font-medium">{result.feedback.recommendation}</p>
+                    </div>
+                  )}
+                  
+                  {Array.isArray(result.feedback.suggestedInvestors) && result.feedback.suggestedInvestors.length > 0 && (
+                    <div>
+                      <strong className="text-purple-700 flex items-center">
+                        <span className="mr-2">🎯</span> Suggested Investors:
+                      </strong>
+                      <ul className="list-disc ml-5 mt-2 space-y-1">
+                        {result.feedback.suggestedInvestors.map((investor: string, i: number) => (
+                          <li key={i} className="text-gray-700">{investor}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
-            {result?.investor && (
-              <div className="bg-gray-50 p-4 rounded-md mb-6">
-                <h3 className="text-xl font-bold mb-3">{result.investor.name || 'Investor'} Feedback</h3>
-                {result.investor.background && (
-                  <p className="text-gray-600 mb-4">{result.investor.background}</p>
-                )}
-                
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-bold text-green-700 flex items-center">
-                      <span className="mr-2">✓</span> What's Compelling
-                    </h4>
-                    <div className="mt-2 pl-6">
-                      {/* Safely extract strengths section from feedback */}
-                      <div className="whitespace-pre-line">
-                        {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Strengths')
-                          ? result.feedback.split('Strengths')[1].split('Concerns')[0] 
-                          : 'Strengths section not found in feedback'}
-                      </div>
-                    </div>
-                  </div>
+            {/* FeedbackViewer Integration */}
+            <div className="mt-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Investor Feedback Insights</h2>
+                <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-md">
+                  <button
+                    onClick={() => setViewMode('card')}
+                    className={`px-3 py-1 rounded ${
+                      viewMode === 'card' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Cards
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-1 rounded ${
+                      viewMode === 'table' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Table
+                  </button>
+                </div>
+              </div>
+              
+              {/* Convert result to proper FeedbackItem[] format */}
+              {(() => {
+                try {
+                  // Create a mock array of feedback items from the result
+                  // This would ideally come from your API
+                  const parsedFeedback: FeedbackItem[] = [];
                   
-                  <div>
-                    <h4 className="font-bold text-red-700 flex items-center">
-                      <span className="mr-2">⚠</span> What's Risky
-                    </h4>
-                    <div className="mt-2 pl-6">
-                      {/* Safely extract concerns section from feedback */}
-                      <div className="whitespace-pre-line">
-                        {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Concerns')
-                          ? result.feedback.split('Concerns')[1].split('Would you take a meeting')[0] 
-                          : 'Concerns section not found in feedback'}
-                      </div>
-                    </div>
-                  </div>
+                  // Add the main feedback if available
+                  if (result?.feedback) {
+                    // For a single feedback item (current implementation)
+                    const mainFeedback: FeedbackItem = {
+                      id: 'main-feedback',
+                      persona: result.investor?.name || 'Primary Investor',
+                      feedback: typeof result.feedback === 'string' ? result.feedback : '',
+                      strengths: [],
+                      concerns: [],
+                      recommendation: '',
+                      slides: {}
+                    };
+                    
+                    // Extract strengths and concerns if available in the structure
+                    if (typeof result.feedback === 'string') {
+                      // Try to extract from the old text-based format
+                      if (result.feedback.includes('Strengths')) {
+                        const strengthsText = result.feedback.split('Strengths')[1].split('Concerns')[0];
+                        mainFeedback.strengths = strengthsText
+                          .split('\n')
+                          .filter((line: string) => line.trim())
+                          .map((line: string) => line.trim());
+                      }
+                      
+                      if (result.feedback.includes('Concerns')) {
+                        const concernsText = result.feedback.split('Concerns')[1].split('Would you take a meeting')[0];
+                        mainFeedback.concerns = concernsText
+                          .split('\n')
+                          .filter((line: string) => line.trim())
+                          .map((line: string) => line.trim());
+                      }
+                      
+                      if (result.feedback.includes('Would you take a meeting')) {
+                        mainFeedback.recommendation = result.feedback.split('Would you take a meeting')[1].trim();
+                      }
+                    } else if (result.feedback.strengths && Array.isArray(result.feedback.strengths)) {
+                      // New structured format
+                      mainFeedback.strengths = result.feedback.strengths;
+                      mainFeedback.concerns = result.feedback.concerns || [];
+                      mainFeedback.recommendation = result.feedback.recommendation || '';
+                    }
+                    
+                    parsedFeedback.push(mainFeedback);
+                  }
                   
-                  <div>
-                    <h4 className="font-bold text-blue-700 flex items-center">
-                      <span className="mr-2">🤝</span> Meeting Decision
-                    </h4>
-                    <div className="mt-2 pl-6">
-                      {/* Safely extract meeting decision from feedback */}
-                      <div className="whitespace-pre-line font-medium">
-                        {result.feedback && typeof result.feedback === 'string' && result.feedback.includes('Would you take a meeting')
-                          ? result.feedback.split('Would you take a meeting')[1]
-                          : 'Meeting decision not found in feedback'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                  // Add some sample/mock data for demonstration (would be removed in production)
+                  if (parsedFeedback.length === 0 || process.env.NODE_ENV === 'development') {
+                    parsedFeedback.push({
+                      id: 'sample-1',
+                      persona: 'Angel Investor',
+                      feedback: 'Strong team, but market concerns',
+                      strengths: ['Excellent team background', 'Clear problem statement'],
+                      concerns: ['Market size seems overestimated', 'Competitive analysis is lacking'],
+                      recommendation: 'Yes, I would take this meeting',
+                      slides: {
+                        'Team Slide': { relevance: 9, comments: 'Impressive backgrounds' },
+                        'Market Slide': { relevance: 4, comments: 'Needs more validation' }
+                      }
+                    });
+                    
+                    parsedFeedback.push({
+                      id: 'sample-2',
+                      persona: 'Seed VC',
+                      feedback: 'Interesting concept but early',
+                      strengths: ['Novel approach', 'Strong IP potential'],
+                      concerns: ['Pre-revenue', 'No clear GTM strategy'],
+                      recommendation: 'No, too early for our firm',
+                      slides: {
+                        'Product Slide': { relevance: 8, comments: 'Innovative technology' },
+                        'Financials': { relevance: 3, comments: 'Projections seem optimistic' }
+                      }
+                    });
+                  }
+                  
+                  return <FeedbackViewer feedbackData={parsedFeedback} viewMode={viewMode} />;
+                } catch (err) {
+                  console.error('Error rendering feedback viewer:', err);
+                  return <div className="text-red-600">Error displaying structured feedback</div>;
+                }
+              })()}
+            </div>
+          </>
+        )}
+        
+        <div className="mt-8 border-t pt-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div>
+              <h3 className="font-bold mb-2">📤 Save this report (coming soon)</h3>
+              <p className="text-sm text-gray-600">Export to PDF or receive via email</p>
+            </div>
             
-            {result?.realInvestors && Array.isArray(result.realInvestors) && result.realInvestors.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-4">🔗 Real Investor Recommendations</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {result.realInvestors.slice(0, 3).map((investor: any, index: number) => (
-                    <div key={index} className="border rounded-md p-4 bg-white hover:shadow-md transition">
-                      <h4 className="font-bold">{investor?.name || 'Investor'}</h4>
-                      {investor?.thesis && (
-                        <p className="text-sm text-gray-600 my-2">{investor.thesis}</p>
-                      )}
-                      {investor?.website && (
-                        <a 
-                          href={investor.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-sm"
-                        >
-                          Visit website
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {result?.feedback && (
-              <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 space-y-4">
-                <h3 className="text-xl font-bold mb-2">Detailed Feedback</h3>
-                
-                {Array.isArray(result.feedback.strengths) && result.feedback.strengths.length > 0 && (
-                  <div>
-                    <strong className="text-green-700 flex items-center">
-                      <span className="mr-2">📈</span> Strengths:
-                    </strong>
-                    <ul className="list-disc ml-5 mt-2 space-y-1">
-                      {result.feedback.strengths.map((strength: string, i: number) => (
-                        <li key={i} className="text-gray-700">{strength}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {Array.isArray(result.feedback.concerns) && result.feedback.concerns.length > 0 && (
-                  <div>
-                    <strong className="text-red-700 flex items-center">
-                      <span className="mr-2">⚠️</span> Concerns:
-                    </strong>
-                    <ul className="list-disc ml-5 mt-2 space-y-1">
-                      {result.feedback.concerns.map((concern: string, i: number) => (
-                        <li key={i} className="text-gray-700">{concern}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {result.feedback.recommendation && (
-                  <div>
-                    <strong className="text-blue-700 flex items-center">
-                      <span className="mr-2">🤝</span> Meeting Recommendation:
-                    </strong>
-                    <p className="ml-7 mt-1 font-medium">{result.feedback.recommendation}</p>
-                  </div>
-                )}
-                
-                {Array.isArray(result.feedback.suggestedInvestors) && result.feedback.suggestedInvestors.length > 0 && (
-                  <div>
-                    <strong className="text-purple-700 flex items-center">
-                      <span className="mr-2">🎯</span> Suggested Investors:
-                    </strong>
-                    <ul className="list-disc ml-5 mt-2 space-y-1">
-                      {result.feedback.suggestedInvestors.map((investor: string, i: number) => (
-                        <li key={i} className="text-gray-700">{investor}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="mt-8 border-t pt-6">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div>
-                  <h3 className="font-bold mb-2">📤 Save this report (coming soon)</h3>
-                  <p className="text-sm text-gray-600">Export to PDF or receive via email</p>
-                </div>
-                
-                <div className="mt-4 md:mt-0">
-                  <h3 className="font-bold mb-2">Get notified about new features</h3>
-                  <div className="flex">
-                    <input 
-                      type="email" 
-                      placeholder="Your email" 
-                      className="border rounded-l p-2 text-sm w-48"
-                    />
-                    <button 
-                      type="button"
-                      className="bg-blue-600 text-white rounded-r px-3 text-sm"
-                    >
-                      Notify Me
-                    </button>
-                  </div>
-                </div>
+            <div className="mt-4 md:mt-0">
+              <h3 className="font-bold mb-2">Get notified about new features</h3>
+              <div className="flex">
+                <input 
+                  type="email" 
+                  placeholder="Your email" 
+                  className="border rounded-l p-2 text-sm w-48"
+                />
+                <button 
+                  type="button"
+                  className="bg-blue-600 text-white rounded-r px-3 text-sm"
+                >
+                  Notify Me
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </FileUploadErrorBoundary>
   );
