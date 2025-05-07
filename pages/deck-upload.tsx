@@ -140,6 +140,9 @@ export default function DeckUploader() {
     setPitchText(examplePitch);
   };
 
+  // Log file state in render
+  console.log("🟡 file state in render:", file);
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Get Feedback on Your Startup Pitch</h1>
@@ -210,17 +213,11 @@ export default function DeckUploader() {
             >
               Select PDF File
             </button>
-            {(() => {
-              if (!file || typeof file !== 'object' || !file.name) {
-                setError('Please select a valid file.');
-                console.error('No file selected or invalid file object', file);
-                return null;
-              }
-              console.log("file:", file);
-              return (
-                <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
-              );
-            })()}
+            {file && typeof file === 'object' && file.name ? (
+              <div className="text-sm text-gray-600 mt-2 font-bold">{file.name}</div>
+            ) : (
+              <div className="text-red-600 text-sm">No file selected</div>
+            )}
           </div>
         </div>
         
