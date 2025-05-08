@@ -1,12 +1,7 @@
 import { createLLMClient } from './llmClient';
-import { SyntheticInvestor } from '../personas/investorPersonas';
-
-interface FollowUpResponse {
-  personaId: string;
-  personaName: string;
-  updatedResponse: string;
-  updatedSentiment: 'improved' | 'unchanged' | 'worsened';
-}
+import { SyntheticInvestor } from '../types/personas';
+import { FollowUpResponse } from '../types/feedback';
+import { FOLLOWUP_SENTIMENT_CHANGE_TYPES } from '../constants';
 
 /**
  * Simulates a follow-up response from an investor after receiving additional context
@@ -38,7 +33,7 @@ ${followUpContext}
 """
 
 As ${persona.name}, revise or extend your assessment based on this new information. 
-Stay in character as ${persona.name} with your ${persona.tone} communication style.
+Stay in character as ${persona.name} with your ${persona.quoteStyle} communication style.
 Be true to your behavioral traits: ${persona.behavioralTraits.join(', ')}.
 
 FORMAT YOUR RESPONSE AS FOLLOWS:

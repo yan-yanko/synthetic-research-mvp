@@ -1,16 +1,23 @@
-import { useEffect, useState, useRef } from 'react';
-import { generateInvestorFeedback, FeedbackResponse } from '../generateInvestorFeedback';
+import { useEffect, useState, useMemo } from 'react';
+import { generateInvestorFeedback } from '../generateInvestorFeedback';
 import { investorPersonas } from '../personas/investorPersonas';
 import FeedbackViewer from './FeedbackViewer';
 import { InvestorSummaryPanel } from './InvestorSummaryPanel';
 import { FollowUpPanel } from './FollowUpPanel';
-import { processFileContent } from '../utils/pdfReader';
+import { FileUploadPanel } from './FileUploadPanel';
+import { SlideReviewPanel } from './SlideReviewPanel';
+import { LoadingIndicator } from './LoadingIndicator';
+import { FeedbackResponse } from '../types/feedback';
+import { SyntheticInvestor } from '../types/personas';
 
 interface InvestorPanelProps {
   deckSlides?: string[];
   elevatorPitch?: string;
 }
 
+/**
+ * Main component for investor feedback analysis
+ */
 export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorPanelProps) {
   const [feedback, setFeedback] = useState<FeedbackResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,19 +27,25 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
   const [parsedSlides, setParsedSlides] = useState<string[]>(deckSlides);
   const [pitchText, setPitchText] = useState<string>(elevatorPitch);
   const [error, setError] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isAutoDetectedPitch, setIsAutoDetectedPitch] = useState<boolean>(false);
   const [showParsedSlides, setShowParsedSlides] = useState<boolean>(false);
-  const [expandedSlideIndex, setExpandedSlideIndex] = useState<number | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (parsedSlides.length > 0 || pitchText) {
-      // Don't auto-generate feedback anymore when slides/pitch are updated
-      // Let the user review and click the button instead
-    }
-  }, [parsedSlides, pitchText]);
+  // Memoize the filtered persona
+  const selectedPersona = useMemo(() => {
+    return expandedPersona 
+      ? investorPersonas.find(p => p.id === expandedPersona) 
+      : null;
+  }, [expandedPersona]);
 
+  // Handle file upload results
+  const handleSlidesDetected = (slides: string[], pitch: string, file: File) => {
+    setParsedSlides(slides);
+    setPitchText(pitch);
+    setUploadedFile(file);
+    setShowParsedSlides(true);
+  };
+
+  // Generate feedback from investor personas
   const generateFeedback = async () => {
     if (!parsedSlides.length && !pitchText.trim()) {
       setError("Please upload a file or enter an elevator pitch");
@@ -52,49 +65,6 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
       setError('Failed to generate investor feedback. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Handle file upload 
-  const handleFileUpload = async (file: File | null) => {
-    if (!file) {
-      setError('No file selected');
-      return;
-    }
-    
-    setUploadedFile(file);
-    setError('');
-    setLoading(true);
-    
-    try {
-      // Process the file using our utility
-      const { slides, pitch } = await processFileContent(file);
-      
-      setParsedSlides(slides);
-      
-      // Always set the detected pitch, but mark it as auto-detected
-      if (pitch) {
-        setPitchText(pitch);
-        setIsAutoDetectedPitch(true);
-      }
-      
-      console.log(`Processed ${slides.length} slides from ${file.name}`);
-      
-      // Show parsed slides for review
-      setShowParsedSlides(true);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error processing file:', err);
-      setError(err instanceof Error ? err.message : 'Failed to process the uploaded file');
-      setLoading(false);
-    }
-  };
-
-  const toggleSlideExpansion = (index: number) => {
-    if (expandedSlideIndex === index) {
-      setExpandedSlideIndex(null);
-    } else {
-      setExpandedSlideIndex(index);
     }
   };
 
@@ -119,131 +89,13 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     }
   };
 
-  const renderFileUploadPanel = () => (
-    <div className="mb-6 p-4 border rounded-md bg-gray-50">
-      <h3 className="text-lg font-semibold mb-3">Upload Your Pitch Deck</h3>
-      
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-grow">
-          <label className="block mb-2 text-sm font-medium">Select a file:</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept=".pdf,.ppt,.pptx"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files?.[0] || null)}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-            >
-              Choose File
-            </button>
-            <span className="text-sm text-gray-600">
-              {uploadedFile ? uploadedFile.name : 'No file selected'}
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Accepted formats: .pdf, .ppt, .pptx</p>
-          
-          {/* File details */}
-          {uploadedFile && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
-              <p><span className="font-medium">File:</span> {uploadedFile.name}</p>
-              <p><span className="font-medium">Size:</span> {Math.round(uploadedFile.size / 1024)} KB</p>
-              <p><span className="font-medium">Slides detected:</span> {parsedSlides.length}</p>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex-grow">
-          <label className="block mb-2 text-sm font-medium">
-            Elevator pitch:
-            {isAutoDetectedPitch && (
-              <span className="ml-2 text-xs bg-yellow-100 px-2 py-0.5 rounded-full text-yellow-800">
-                Auto-detected
-              </span>
-            )}
-          </label>
-          <textarea
-            value={pitchText}
-            onChange={(e) => {
-              setPitchText(e.target.value);
-              // If user edits the pitch, it's no longer auto-detected
-              if (isAutoDetectedPitch) {
-                setIsAutoDetectedPitch(false);
-              }
-            }}
-            className={`w-full p-2 border rounded resize-none ${isAutoDetectedPitch ? 'bg-yellow-50 border-yellow-300' : ''}`}
-            rows={3}
-            placeholder="Describe your startup in a few sentences..."
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {isAutoDetectedPitch ? 'This pitch was automatically extracted from your document. Edit as needed.' : 'Enter a brief elevator pitch about your startup.'}
-          </p>
-        </div>
-      </div>
-      
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-      
-      {showParsedSlides && parsedSlides.length > 0 && (
-        <div className="mt-4">
-          <h4 className="font-medium text-sm mb-2">Parsed Slides for Review:</h4>
-          <div className="max-h-60 overflow-y-auto border rounded bg-white">
-            {parsedSlides.map((slide, index) => (
-              <div 
-                key={index}
-                className="border-b last:border-b-0 p-2 hover:bg-gray-50 cursor-pointer"
-                onClick={() => toggleSlideExpansion(index)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">Slide {index + 1}</span>
-                  <span className="text-xs text-gray-500">
-                    {expandedSlideIndex === index ? 'Collapse ▲' : 'Expand ▼'}
-                  </span>
-                </div>
-                {expandedSlideIndex === index ? (
-                  <p className="text-sm mt-1 text-gray-700 whitespace-pre-line">{slide}</p>
-                ) : (
-                  <p className="text-sm mt-1 text-gray-700 truncate">{slide.substring(0, 100)}{slide.length > 100 ? '...' : ''}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {!loading && (parsedSlides.length > 0 || pitchText) && (
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={generateFeedback}
-            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
-          >
-            Generate Feedback
-          </button>
-          {showParsedSlides && (
-            <button
-              type="button"
-              onClick={() => setShowParsedSlides(false)}
-              className="ml-3 text-gray-600 hover:text-gray-800 underline"
-            >
-              Hide Slides
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   if (loading) {
     return (
-      <div className="text-center p-10">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Simulating investor reactions...</p>
-        <p className="text-sm text-gray-500 mt-2">This might take a minute or two...</p>
-      </div>
+      <LoadingIndicator 
+        message="Simulating investor reactions..." 
+        subMessage="This might take a minute or two..." 
+        size="large"
+      />
     );
   }
 
@@ -389,10 +241,12 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
               <div className="mt-4 pt-4 border-t">
                 <FeedbackViewer feedback={f} viewMode="card" />
                 
-                <FollowUpPanel 
-                  feedback={f} 
-                  persona={investorPersonas.find(p => p.id === f.personaId)!} 
-                />
+                {selectedPersona && (
+                  <FollowUpPanel 
+                    feedback={f} 
+                    persona={selectedPersona} 
+                  />
+                )}
               </div>
             )}
           </div>
@@ -401,12 +255,46 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     </div>
   );
 
+  const renderActionButtons = () => (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={generateFeedback}
+        className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
+      >
+        Generate Feedback
+      </button>
+    </div>
+  );
+
   return (
     <div className="container mx-auto py-6">
       <h2 className="text-2xl font-bold text-center mb-6">Investor Feedback Analysis</h2>
       
       {/* File Upload Panel */}
-      {renderFileUploadPanel()}
+      <FileUploadPanel 
+        onSlidesDetected={handleSlidesDetected} 
+        initialPitch={elevatorPitch}
+      />
+      
+      {/* Slide Review Panel */}
+      {showParsedSlides && (
+        <SlideReviewPanel 
+          slides={parsedSlides} 
+          onHideSlides={() => setShowParsedSlides(false)} 
+        />
+      )}
+
+      {/* Generate feedback button */}
+      {!loading && (parsedSlides.length > 0 || pitchText) && (
+        renderActionButtons()
+      )}
+      
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+          {error}
+        </div>
+      )}
       
       {/* Show the summary panel at the top if enabled */}
       {showSummary && feedback.length > 0 && (
@@ -418,7 +306,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
           {renderViewControls()}
           {viewMode === 'table' ? renderSummaryTable() : renderCardView()}
           
-          {expandedPersona && viewMode === 'table' && (
+          {expandedPersona && viewMode === 'table' && selectedPersona && (
             <div className="mt-6 p-4 border rounded-xl bg-white">
               <h3 className="text-lg font-bold mb-4">Detailed Analysis</h3>
               <FeedbackViewer 
@@ -428,7 +316,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
               
               <FollowUpPanel 
                 feedback={feedback.find(f => f.personaId === expandedPersona)!} 
-                persona={investorPersonas.find(p => p.id === expandedPersona)!} 
+                persona={selectedPersona} 
               />
             </div>
           )}

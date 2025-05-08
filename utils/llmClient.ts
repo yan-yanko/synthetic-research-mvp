@@ -1,23 +1,20 @@
 /**
  * LLM Client for handling API requests to language models
  */
-
-// Configuration interface for the LLM API
-export interface LLMClientConfig {
-  apiKey?: string;
-  baseUrl?: string;
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
-  timeout?: number;
-}
+import { LLMClientConfig } from '../types/api';
+import { 
+  LLM_DEFAULT_MODEL, 
+  LLM_DEFAULT_TEMPERATURE, 
+  LLM_DEFAULT_MAX_TOKENS,
+  DEFAULT_TIMEOUT_MS
+} from '../constants';
 
 // Default configuration values
 const DEFAULT_CONFIG: LLMClientConfig = {
-  model: 'gpt-4',
-  maxTokens: 2048,
-  temperature: 0.7,
-  timeout: 60000 // 60 seconds
+  model: LLM_DEFAULT_MODEL,
+  maxTokens: LLM_DEFAULT_MAX_TOKENS,
+  temperature: LLM_DEFAULT_TEMPERATURE,
+  timeout: DEFAULT_TIMEOUT_MS
 };
 
 /**

@@ -1,153 +1,203 @@
 import { useState } from 'react';
 import { simulateFollowUp, analyzeFollowUpChanges } from '../utils/simulateFollowUp';
-import { FeedbackResponse } from '../generateInvestorFeedback';
-import { SyntheticInvestor } from '../personas/investorPersonas';
+import { FeedbackResponse, FollowUpResponse } from '../types/feedback';
+import { SyntheticInvestor } from '../types/personas';
+import { LoadingIndicator } from './LoadingIndicator';
 
 interface FollowUpPanelProps {
   feedback: FeedbackResponse;
   persona: SyntheticInvestor;
 }
 
+/**
+ * Component for simulating investor follow-up responses to clarifications
+ */
 export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
-  const [input, setInput] = useState('');
-  const [response, setResponse] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit() {
-    if (!input.trim()) {
-      setError('Please enter a response before submitting');
+  const [followUpContext, setFollowUpContext] = useState<string>('');
+  const [followUpResponse, setFollowUpResponse] = useState<FollowUpResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [showForm, setShowForm] = useState<boolean>(false);
+  
+  // Generate a follow-up response based on user explanation
+  const handleFollowUp = async () => {
+    if (!followUpContext.trim()) {
+      setError('Please enter your follow-up explanation first');
       return;
     }
-
+    
     setLoading(true);
-    setError(null);
+    setError('');
     
     try {
-      const res = await simulateFollowUp(feedback.fullResponse, input, persona);
+      const response = await simulateFollowUp(
+        feedback.fullResponse,
+        followUpContext,
+        persona
+      );
       
-      // Analyze the changes between original and updated feedback
-      const changes = analyzeFollowUpChanges(feedback, res.updatedResponse);
-      
-      setResponse({
-        ...res,
-        changes: changes.changes,
-        significance: changes.significance
-      });
+      setFollowUpResponse(response);
     } catch (err) {
       console.error('Error simulating follow-up:', err);
-      setError('Failed to generate follow-up response. Please try again.');
+      setError('Failed to generate follow-up response');
     } finally {
       setLoading(false);
     }
-  }
-
-  const getSentimentChangeColor = (sentiment: string) => {
-    switch (sentiment) {
-      case 'improved':
-        return 'text-green-600';
-      case 'worsened':
-        return 'text-red-600';
-      default:
-        return 'text-yellow-600';
-    }
   };
-
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
-      case 'improved':
-        return '↗️';
-      case 'worsened':
-        return '↘️';
-      default:
-        return '↔️';
-    }
+  
+  // Analyze changes between initial and follow-up responses
+  const getChangeAnalysis = () => {
+    if (!followUpResponse) return null;
+    
+    const analysis = analyzeFollowUpChanges(feedback, followUpResponse.updatedResponse);
+    
+    return (
+      <div className="mt-6 p-3 bg-blue-50 border border-blue-100 rounded">
+        <h5 className="text-sm font-medium text-blue-900 mb-2">Changes in Assessment</h5>
+        {analysis.changes.length > 0 ? (
+          <ul className="list-disc list-inside text-sm">
+            {analysis.changes.map((change, idx) => (
+              <li key={idx} className="text-blue-800">{change}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-blue-800">No significant changes detected in assessment.</p>
+        )}
+        
+        <div className="mt-2 text-xs">
+          <span className="font-medium">Overall change significance: </span>
+          <span className={`
+            ${analysis.significance === 'significant' ? 'text-blue-900 font-bold' : 
+              analysis.significance === 'moderate' ? 'text-blue-800' : 'text-blue-700'}
+          `}>
+            {analysis.significance}
+          </span>
+        </div>
+      </div>
+    );
   };
-
-  const getSignificanceColor = (significance: string) => {
-    switch (significance) {
-      case 'significant':
-        return 'bg-blue-100 text-blue-800';
-      case 'moderate':
-        return 'bg-indigo-100 text-indigo-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  
+  // Extract sections from updated response
+  const renderUpdatedResponse = () => {
+    if (!followUpResponse) return null;
+    
+    // Extract sections using regex
+    const extractSection = (sectionName: string): string => {
+      const regex = new RegExp(`## ${sectionName}\\s*\\n([\\s\\S]*?)(?=##|$)`, 'i');
+      const match = followUpResponse.updatedResponse.match(regex);
+      return match ? match[1].trim() : '';
+    };
+    
+    const updatedAssessment = extractSection('Updated Assessment');
+    const investmentStatus = extractSection('Investment Status');
+    const remainingConcerns = extractSection('Remaining Concerns');
+    const newPositives = extractSection('New Positives');
+    const followupQuestion = extractSection('Follow-up Question');
+    
+    return (
+      <div className="mt-4 p-4 border rounded">
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="font-medium">Updated Assessment</h4>
+          <span className={`px-2 py-1 text-xs rounded-full ${
+            followUpResponse.updatedSentiment === 'improved' ? 'bg-green-100 text-green-800' :
+            followUpResponse.updatedSentiment === 'worsened' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            Sentiment: {followUpResponse.updatedSentiment.charAt(0).toUpperCase() + followUpResponse.updatedSentiment.slice(1)}
+          </span>
+        </div>
+        
+        <p className="text-sm text-gray-700 mb-4">{updatedAssessment}</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h5 className="font-medium text-green-700">New Positives</h5>
+            <div className="mt-1 p-2 bg-green-50 rounded">
+              {newPositives ? (
+                <p className="text-gray-700">{newPositives}</p>
+              ) : (
+                <p className="text-gray-500 italic">No new positives identified</p>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <h5 className="font-medium text-red-700">Remaining Concerns</h5>
+            <div className="mt-1 p-2 bg-red-50 rounded">
+              {remainingConcerns ? (
+                <p className="text-gray-700">{remainingConcerns}</p>
+              ) : (
+                <p className="text-gray-500 italic">No remaining concerns</p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4">
+          <h5 className="font-medium text-blue-700">Investment Status</h5>
+          <p className="mt-1 text-gray-700">{investmentStatus}</p>
+        </div>
+        
+        {followupQuestion && (
+          <div className="mt-4">
+            <h5 className="font-medium text-purple-700">Follow-up Question</h5>
+            <p className="mt-1 text-gray-700">{followupQuestion}</p>
+          </div>
+        )}
+        
+        {getChangeAnalysis()}
+      </div>
+    );
   };
-
+  
   return (
-    <div className="mt-6 p-4 border rounded-lg bg-white shadow-sm">
-      <h4 className="text-md font-bold mb-2 flex items-center">
-        <span className="mr-2">📣</span> Respond to {persona.name}
-      </h4>
-      
-      <div className="mb-4 text-sm text-gray-600">
-        <p>Address their concerns or provide additional clarification to see if you can improve their investment stance.</p>
+    <div className="mt-6 border-t pt-4">
+      <div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center text-blue-600 hover:text-blue-800"
+        >
+          <span className="mr-2">{showForm ? '▼' : '►'}</span>
+          <span className="font-medium">Follow-up with clarifications</span>
+        </button>
+        
+        {showForm && (
+          <div className="mt-3">
+            <p className="text-sm text-gray-600 mb-2">
+              Provide additional explanation or address investor concerns to see how it affects their assessment:
+            </p>
+            
+            <textarea
+              value={followUpContext}
+              onChange={(e) => setFollowUpContext(e.target.value)}
+              className="w-full p-3 border rounded-md resize-none"
+              rows={4}
+              placeholder="Explain how you would address this investor's concerns..."
+            />
+            
+            {error && (
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+            )}
+            
+            <button
+              onClick={handleFollowUp}
+              disabled={loading || !followUpContext.trim()}
+              className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              Simulate Investor Response
+            </button>
+          </div>
+        )}
       </div>
       
-      <textarea
-        className="w-full border rounded-md p-3 text-sm"
-        rows={4}
-        placeholder="Explain your business model further, clarify market projections, describe your unique advantages..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-      />
-      
-      {error && (
-        <div className="mt-2 text-sm text-red-600">
-          {error}
-        </div>
+      {loading && (
+        <LoadingIndicator 
+          message="Simulating investor response..." 
+          size="small" 
+        />
       )}
       
-      <button
-        className={`mt-3 ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-md text-sm transition-colors`}
-        onClick={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <span className="flex items-center">
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Simulating Response...
-          </span>
-        ) : (
-          'Submit Response'
-        )}
-      </button>
-
-      {response && (
-        <div className="mt-6 bg-slate-50 p-4 rounded-lg border">
-          <div className="flex justify-between items-start">
-            <h5 className="font-semibold text-gray-900 flex items-center">
-              Updated Feedback from {response.personaName}
-            </h5>
-            <span className={`${getSentimentChangeColor(response.updatedSentiment)} font-medium text-sm flex items-center`}>
-              {getSentimentIcon(response.updatedSentiment)} {response.updatedSentiment.charAt(0).toUpperCase() + response.updatedSentiment.slice(1)}
-            </span>
-          </div>
-          
-          {response.changes && response.changes.length > 0 && (
-            <div className="mt-3">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSignificanceColor(response.significance)}`}>
-                {response.significance} changes
-              </span>
-              <ul className="mt-2 text-sm text-gray-700 space-y-1">
-                {response.changes.map((change: string, idx: number) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="text-blue-500 mr-1">•</span> {change}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          <div className="mt-4 whitespace-pre-wrap text-sm text-gray-800 bg-white p-3 rounded-md border shadow-sm">
-            {response.updatedResponse}
-          </div>
-        </div>
-      )}
+      {followUpResponse && renderUpdatedResponse()}
     </div>
   );
 } 

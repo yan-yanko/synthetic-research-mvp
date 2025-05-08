@@ -1,13 +1,19 @@
-import React from 'react';
-import { FeedbackResponse } from '../generateInvestorFeedback';
+import React, { useMemo } from 'react';
+import { FeedbackResponse, InvestorSummary } from '../types/feedback';
 import { summarizeInvestorPanel } from '../utils/summarizeInvestorPanel';
 
 interface InvestorSummaryPanelProps {
   feedback: FeedbackResponse[];
 }
 
+/**
+ * Component to display an aggregated summary of all investor feedback
+ */
 export function InvestorSummaryPanel({ feedback }: InvestorSummaryPanelProps) {
-  const summary = summarizeInvestorPanel(feedback);
+  // Memoize the summary calculation to prevent recalculation on re-renders
+  const summary = useMemo(() => {
+    return summarizeInvestorPanel(feedback);
+  }, [feedback]);
 
   if (!feedback || feedback.length === 0) {
     return null;
@@ -56,56 +62,57 @@ export function InvestorSummaryPanel({ feedback }: InvestorSummaryPanelProps) {
 
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h4 className="font-medium text-gray-900 mb-2">Top Strengths</h4>
-          <ul className="list-disc list-inside text-sm space-y-2">
-            {summary.topStrengths.map((strength, idx) => (
-              <li key={idx} className="text-green-700">{strength}</li>
+          <ul className="space-y-2">
+            {summary.topStrengths.map((strength, index) => (
+              <li key={index} className="text-sm text-gray-700 flex items-start">
+                <span className="text-green-500 mr-2">✓</span>
+                <span>{strength}</span>
+              </li>
             ))}
-            {summary.topStrengths.length === 0 && (
-              <li className="text-gray-500 italic">No common strengths identified</li>
-            )}
           </ul>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h4 className="font-medium text-gray-900 mb-2">Top Concerns</h4>
-          <ul className="list-disc list-inside text-sm space-y-2">
-            {summary.topConcerns.map((concern, idx) => (
-              <li key={idx} className="text-red-700">{concern}</li>
+          <ul className="space-y-2">
+            {summary.topConcerns.map((concern, index) => (
+              <li key={index} className="text-sm text-gray-700 flex items-start">
+                <span className="text-red-500 mr-2">⚠</span>
+                <span>{concern}</span>
+              </li>
             ))}
-            {summary.topConcerns.length === 0 && (
-              <li className="text-gray-500 italic">No common concerns identified</li>
-            )}
           </ul>
         </div>
       </div>
 
       <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
-        <h4 className="font-medium text-gray-900 mb-2">Investment Likelihood</h4>
-        <div className="mb-3">
-          <div className="w-full bg-gray-200 rounded-full h-4">
-            <div 
-              className={`h-4 rounded-full ${
-                summary.investmentLikelihood > 70 ? 'bg-green-500' : 
-                summary.investmentLikelihood > 40 ? 'bg-yellow-500' : 'bg-red-500'
-              }`}
-              style={{ width: `${summary.investmentLikelihood}%` }}
-            ></div>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Not Interested</span>
-            <span>Needs More Info</span>
-            <span>Would Invest</span>
-          </div>
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="font-medium text-gray-900">Investment Likelihood</h4>
+          <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+            {summary.investmentLikelihood}%
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2.5">
+          <div 
+            className={`h-2.5 rounded-full ${
+              summary.investmentLikelihood > 66 
+                ? 'bg-green-500' 
+                : summary.investmentLikelihood > 33 
+                  ? 'bg-yellow-500' 
+                  : 'bg-red-500'
+            }`} 
+            style={{ width: `${summary.investmentLikelihood}%` }}
+          ></div>
         </div>
       </div>
 
       <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
         <h4 className="font-medium text-gray-900 mb-2">Recommended Next Steps</h4>
-        <ul className="list-disc list-inside text-sm space-y-2">
-          {summary.recommendedNextSteps.map((step, idx) => (
-            <li key={idx} className="text-blue-700">{step}</li>
+        <ol className="list-decimal list-inside space-y-2">
+          {summary.recommendedNextSteps.map((step, index) => (
+            <li key={index} className="text-sm text-gray-700">{step}</li>
           ))}
-        </ul>
+        </ol>
       </div>
     </div>
   );

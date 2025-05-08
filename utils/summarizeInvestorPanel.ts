@@ -1,19 +1,4 @@
-import { FeedbackResponse } from '../generateInvestorFeedback';
-
-interface SummarySentiment {
-  positive: number;
-  neutral: number;
-  negative: number;
-}
-
-export interface InvestorSummary {
-  consensusStatement: string;
-  sentimentSummary: SummarySentiment;
-  topConcerns: string[];
-  topStrengths: string[];
-  investmentLikelihood: number; // 0-100 scale
-  recommendedNextSteps: string[];
-}
+import { FeedbackResponse, SummarySentiment, InvestorSummary } from '../types/feedback';
 
 /**
  * Summarizes feedback from multiple investor personas into a consolidated view
