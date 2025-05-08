@@ -22,10 +22,14 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
   const [error, setError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isAutoDetectedPitch, setIsAutoDetectedPitch] = useState<boolean>(false);
+  const [showParsedSlides, setShowParsedSlides] = useState<boolean>(false);
+  const [expandedSlideIndex, setExpandedSlideIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (parsedSlides.length > 0 || pitchText) {
-      generateFeedback();
+      // Don't auto-generate feedback anymore when slides/pitch are updated
+      // Let the user review and click the button instead
     }
   }, [parsedSlides, pitchText]);
 
@@ -41,6 +45,8 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     try {
       const res = await generateInvestorFeedback(parsedSlides, pitchText);
       setFeedback(res);
+      // Hide parsed slides after generating feedback
+      setShowParsedSlides(false);
     } catch (error) {
       console.error('Error generating investor feedback:', error);
       setError('Failed to generate investor feedback. Please try again.');
@@ -66,16 +72,29 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
       
       setParsedSlides(slides);
       
-      // Only update the pitch if it's not already set or if it's the default value
-      if (!pitchText || pitchText === elevatorPitch) {
+      // Always set the detected pitch, but mark it as auto-detected
+      if (pitch) {
         setPitchText(pitch);
+        setIsAutoDetectedPitch(true);
       }
       
       console.log(`Processed ${slides.length} slides from ${file.name}`);
+      
+      // Show parsed slides for review
+      setShowParsedSlides(true);
+      setLoading(false);
     } catch (err) {
       console.error('Error processing file:', err);
       setError(err instanceof Error ? err.message : 'Failed to process the uploaded file');
       setLoading(false);
+    }
+  };
+
+  const toggleSlideExpansion = (index: number) => {
+    if (expandedSlideIndex === index) {
+      setExpandedSlideIndex(null);
+    } else {
+      setExpandedSlideIndex(index);
     }
   };
 
@@ -127,21 +146,73 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">Accepted formats: .pdf, .ppt, .pptx</p>
+          
+          {/* File details */}
+          {uploadedFile && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
+              <p><span className="font-medium">File:</span> {uploadedFile.name}</p>
+              <p><span className="font-medium">Size:</span> {Math.round(uploadedFile.size / 1024)} KB</p>
+              <p><span className="font-medium">Slides detected:</span> {parsedSlides.length}</p>
+            </div>
+          )}
         </div>
         
         <div className="flex-grow">
-          <label className="block mb-2 text-sm font-medium">Or enter elevator pitch:</label>
+          <label className="block mb-2 text-sm font-medium">
+            Elevator pitch:
+            {isAutoDetectedPitch && (
+              <span className="ml-2 text-xs bg-yellow-100 px-2 py-0.5 rounded-full text-yellow-800">
+                Auto-detected
+              </span>
+            )}
+          </label>
           <textarea
             value={pitchText}
-            onChange={(e) => setPitchText(e.target.value)}
-            className="w-full p-2 border rounded resize-none"
+            onChange={(e) => {
+              setPitchText(e.target.value);
+              // If user edits the pitch, it's no longer auto-detected
+              if (isAutoDetectedPitch) {
+                setIsAutoDetectedPitch(false);
+              }
+            }}
+            className={`w-full p-2 border rounded resize-none ${isAutoDetectedPitch ? 'bg-yellow-50 border-yellow-300' : ''}`}
             rows={3}
             placeholder="Describe your startup in a few sentences..."
           />
+          <p className="text-xs text-gray-500 mt-1">
+            {isAutoDetectedPitch ? 'This pitch was automatically extracted from your document. Edit as needed.' : 'Enter a brief elevator pitch about your startup.'}
+          </p>
         </div>
       </div>
       
       {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+      
+      {showParsedSlides && parsedSlides.length > 0 && (
+        <div className="mt-4">
+          <h4 className="font-medium text-sm mb-2">Parsed Slides for Review:</h4>
+          <div className="max-h-60 overflow-y-auto border rounded bg-white">
+            {parsedSlides.map((slide, index) => (
+              <div 
+                key={index}
+                className="border-b last:border-b-0 p-2 hover:bg-gray-50 cursor-pointer"
+                onClick={() => toggleSlideExpansion(index)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">Slide {index + 1}</span>
+                  <span className="text-xs text-gray-500">
+                    {expandedSlideIndex === index ? 'Collapse ▲' : 'Expand ▼'}
+                  </span>
+                </div>
+                {expandedSlideIndex === index ? (
+                  <p className="text-sm mt-1 text-gray-700 whitespace-pre-line">{slide}</p>
+                ) : (
+                  <p className="text-sm mt-1 text-gray-700 truncate">{slide.substring(0, 100)}{slide.length > 100 ? '...' : ''}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {!loading && (parsedSlides.length > 0 || pitchText) && (
         <div className="mt-4">
@@ -152,6 +223,15 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
           >
             Generate Feedback
           </button>
+          {showParsedSlides && (
+            <button
+              type="button"
+              onClick={() => setShowParsedSlides(false)}
+              className="ml-3 text-gray-600 hover:text-gray-800 underline"
+            >
+              Hide Slides
+            </button>
+          )}
         </div>
       )}
     </div>
