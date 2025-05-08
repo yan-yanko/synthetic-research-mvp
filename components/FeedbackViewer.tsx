@@ -15,30 +15,29 @@ export interface FeedbackItem {
 }
 
 interface FeedbackViewerProps {
-  feedback?: FeedbackResponse;
-  viewMode?: 'card' | 'table';
-  // Adding backward compatibility prop
   feedbackData?: FeedbackItem[];
+  viewMode?: 'card' | 'table';
+  // Keeping feedback prop for backward compatibility
+  feedback?: FeedbackResponse;
 }
 
 /**
  * Component for displaying investor feedback in either card or table format
  */
 const FeedbackViewer: React.FC<FeedbackViewerProps> = ({ 
-  feedback, 
+  feedbackData = [],
   viewMode = 'card',
-  feedbackData 
+  feedback 
 }) => {
   const [expandedSlides, setExpandedSlides] = useState<number[]>([]);
   
-  // If old feedbackData is provided and no new feedback, render legacy view
-  if (feedbackData && feedbackData.length > 0 && !feedback) {
+  // If feedbackData is provided, use legacy view
+  if (feedbackData && feedbackData.length > 0) {
     return renderLegacyView(feedbackData, viewMode);
   }
   
   // If no feedback is provided, we can't render the modern view
   if (!feedback) {
-    // If we have feedbackData, renderLegacyView would have already returned
     return <div className="bg-gray-50 p-6 text-center rounded-lg border border-gray-200">
       <p className="text-gray-500">No feedback data available.</p>
     </div>;
@@ -52,6 +51,11 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
     }
   };
   
+  // Add validation in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.assert(Array.isArray(feedbackData), 'feedbackData must be an array');
+  }
+
   const renderDecisionBadge = () => {
     const { decision } = feedback.decision;
     let badgeColor = '';
