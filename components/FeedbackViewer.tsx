@@ -1,9 +1,24 @@
 import React, { useState } from 'react';
 import { FeedbackResponse } from '../generateInvestorFeedback';
 
+// Adding the FeedbackItem interface to maintain backward compatibility with existing code
+export interface FeedbackItem {
+  id: string;
+  persona: string;
+  feedback: string;
+  strengths: string[];
+  concerns: string[];
+  recommendation: string;
+  slides?: {
+    [key: string]: { relevance: number; comments: string }
+  };
+}
+
 interface FeedbackViewerProps {
   feedback: FeedbackResponse;
   viewMode?: 'card' | 'table';
+  // Adding backward compatibility prop
+  feedbackData?: FeedbackItem[];
 }
 
 /**
@@ -11,9 +26,15 @@ interface FeedbackViewerProps {
  */
 const FeedbackViewer: React.FC<FeedbackViewerProps> = ({ 
   feedback, 
-  viewMode = 'card' 
+  viewMode = 'card',
+  feedbackData 
 }) => {
   const [expandedSlides, setExpandedSlides] = useState<number[]>([]);
+  
+  // If old feedbackData is provided and no new feedback, render legacy view
+  if (feedbackData && feedbackData.length > 0 && !feedback) {
+    return renderLegacyView(feedbackData, viewMode);
+  }
   
   const toggleSlideExpansion = (slideNumber: number) => {
     if (expandedSlides.includes(slideNumber)) {
@@ -213,6 +234,66 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
       </div>
     );
   };
+
+  // Legacy view renderer for backward compatibility
+  function renderLegacyView(feedbackData: FeedbackItem[], viewMode: string) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-xl font-bold mb-4">Investor Feedback</h3>
+        {feedbackData.map((item) => (
+          <div key={item.id} className="mb-6 p-4 border rounded-lg">
+            <div className="flex justify-between">
+              <h4 className="font-bold">{item.persona}</h4>
+            </div>
+            <p className="my-2">{item.feedback}</p>
+            
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h5 className="font-semibold text-green-700">Strengths</h5>
+                <ul className="list-disc pl-5">
+                  {item.strengths.map((strength, idx) => (
+                    <li key={idx} className="text-sm">{strength}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h5 className="font-semibold text-red-700">Concerns</h5>
+                <ul className="list-disc pl-5">
+                  {item.concerns.map((concern, idx) => (
+                    <li key={idx} className="text-sm">{concern}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            {item.recommendation && (
+              <div className="mt-4">
+                <h5 className="font-semibold text-blue-700">Decision</h5>
+                <p className="text-sm">{item.recommendation}</p>
+              </div>
+            )}
+            
+            {item.slides && Object.keys(item.slides).length > 0 && (
+              <div className="mt-4">
+                <h5 className="font-semibold">Slide Feedback</h5>
+                <div className="mt-2">
+                  {Object.entries(item.slides).map(([slideName, slideData], idx) => (
+                    <div key={idx} className="border-b py-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{slideName}</span>
+                        <span className="text-sm text-gray-500">Relevance: {slideData.relevance}/10</span>
+                      </div>
+                      <p className="text-sm mt-1">{slideData.comments}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
   
   return viewMode === 'card' ? renderCardView() : renderTableView();
 };
