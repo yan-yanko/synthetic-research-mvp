@@ -15,7 +15,7 @@ export interface FeedbackItem {
 }
 
 interface FeedbackViewerProps {
-  feedback: FeedbackResponse;
+  feedback?: FeedbackResponse;
   viewMode?: 'card' | 'table';
   // Adding backward compatibility prop
   feedbackData?: FeedbackItem[];
@@ -34,6 +34,14 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
   // If old feedbackData is provided and no new feedback, render legacy view
   if (feedbackData && feedbackData.length > 0 && !feedback) {
     return renderLegacyView(feedbackData, viewMode);
+  }
+  
+  // If no feedback is provided, we can't render the modern view
+  if (!feedback) {
+    // If we have feedbackData, renderLegacyView would have already returned
+    return <div className="bg-gray-50 p-6 text-center rounded-lg border border-gray-200">
+      <p className="text-gray-500">No feedback data available.</p>
+    </div>;
   }
   
   const toggleSlideExpansion = (slideNumber: number) => {
