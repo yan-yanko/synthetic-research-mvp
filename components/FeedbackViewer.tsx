@@ -1,295 +1,220 @@
-import React, { useState, useMemo } from 'react';
-import { summarizeSentiment, extractHighlights } from '../utils/feedback';
+import React, { useState } from 'react';
+import { FeedbackResponse } from '../generateInvestorFeedback';
 
-// Define the FeedbackItem type
-export interface FeedbackItem {
-  id: string;
-  persona: string;
-  feedback: string;
-  strengths: string[];
-  concerns: string[];
-  recommendation: string;
-  slides?: {
-    [key: string]: { relevance: number; comments: string }
-  };
-}
-
-// Props for the component
 interface FeedbackViewerProps {
-  feedbackData: FeedbackItem[];
-  viewMode: 'card' | 'table';
-  onSelectFeedback?: (feedback: FeedbackItem) => void;
+  feedback: FeedbackResponse;
+  viewMode?: 'card' | 'table';
 }
 
-// Helper component for sentiment badges
-const SentimentBadge = ({ sentiment }: { sentiment: 'Positive' | 'Neutral' | 'Negative' }) => {
-  const colors = {
-    Positive: 'bg-green-100 text-green-800 border-green-200',
-    Neutral: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    Negative: 'bg-red-100 text-red-800 border-red-200',
-  };
-
-  const icons = {
-    Positive: '👍',
-    Neutral: '✋',
-    Negative: '👎',
-  };
-
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colors[sentiment]}`}>
-      <span className="mr-1">{icons[sentiment]}</span>
-      {sentiment}
-    </span>
-  );
-};
-
-// Card view component
-const FeedbackCard = ({ feedback, onSelect }: { feedback: FeedbackItem; onSelect?: (feedback: FeedbackItem) => void }) => {
-  const [expanded, setExpanded] = useState(false);
-  const sentiment = summarizeSentiment(feedback);
-  const { compellingSlide, concern } = extractHighlights(feedback);
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4 mb-4">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="text-lg font-semibold text-gray-800">{feedback.persona}</h3>
-        <SentimentBadge sentiment={sentiment} />
-      </div>
-      
-      <div className="mb-3">
-        <div className="text-sm font-medium text-gray-500 mb-1">KEY HIGHLIGHTS</div>
-        <div className="space-y-2">
-          {compellingSlide && (
-            <div>
-              <span className="text-green-600 font-medium">Most compelling:</span> {compellingSlide}
-            </div>
-          )}
-          {concern && (
-            <div>
-              <span className="text-red-600 font-medium">Main concern:</span> {concern}
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {expanded && (
-        <div className="mt-4 pt-3 border-t border-gray-100">
-          <div className="space-y-3">
-            {feedback.strengths.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-700">Strengths:</h4>
-                <ul className="list-disc pl-5 text-sm text-gray-600 mt-1">
-                  {feedback.strengths.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {feedback.concerns.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-700">Concerns:</h4>
-                <ul className="list-disc pl-5 text-sm text-gray-600 mt-1">
-                  {feedback.concerns.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {feedback.recommendation && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-700">Recommendation:</h4>
-                <p className="text-sm text-gray-600 mt-1">{feedback.recommendation}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      <div className="mt-4 flex justify-between items-center">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          {expanded ? 'Show less' : 'Show more'}
-        </button>
-        
-        {onSelect && (
-          <button
-            onClick={() => onSelect(feedback)}
-            className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded text-sm"
-          >
-            Select
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Table view component
-const FeedbackTable = ({ 
-  feedbackData, 
-  onSelect 
-}: { 
-  feedbackData: FeedbackItem[]; 
-  onSelect?: (feedback: FeedbackItem) => void 
+/**
+ * Component for displaying investor feedback in either card or table format
+ */
+const FeedbackViewer: React.FC<FeedbackViewerProps> = ({ 
+  feedback, 
+  viewMode = 'card' 
 }) => {
-  const [sortColumn, setSortColumn] = useState<string>('persona');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [expandedSlides, setExpandedSlides] = useState<number[]>([]);
   
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  const toggleSlideExpansion = (slideNumber: number) => {
+    if (expandedSlides.includes(slideNumber)) {
+      setExpandedSlides(expandedSlides.filter(slide => slide !== slideNumber));
     } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+      setExpandedSlides([...expandedSlides, slideNumber]);
     }
   };
   
-  const sortedData = useMemo(() => {
-    return [...feedbackData].sort((a, b) => {
-      let aValue, bValue;
-      
-      if (sortColumn === 'sentiment') {
-        aValue = summarizeSentiment(a);
-        bValue = summarizeSentiment(b);
-      } else if (sortColumn === 'slide') {
-        aValue = extractHighlights(a).compellingSlide || '';
-        bValue = extractHighlights(b).compellingSlide || '';
-      } else if (sortColumn === 'summary') {
-        aValue = a.recommendation || '';
-        bValue = b.recommendation || '';
-      } else {
-        // Default to persona
-        aValue = a.persona;
-        bValue = b.persona;
-      }
-      
-      // Sort strings
-      if (sortDirection === 'asc') {
-        return aValue.localeCompare(bValue);
-      } else {
-        return bValue.localeCompare(aValue);
-      }
-    });
-  }, [feedbackData, sortColumn, sortDirection]);
-  
-  const renderSortArrow = (column: string) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === 'asc' ? ' ↑' : ' ↓';
-  };
-
-  return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th 
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('persona')}
-            >
-              Persona{renderSortArrow('persona')}
-            </th>
-            <th 
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('sentiment')}
-            >
-              Sentiment{renderSortArrow('sentiment')}
-            </th>
-            <th 
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('slide')}
-            >
-              Most Mentioned Slide{renderSortArrow('slide')}
-            </th>
-            <th 
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSort('summary')}
-            >
-              Summary{renderSortArrow('summary')}
-            </th>
-            {onSelect && (
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Action
-              </th>
-            )}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {sortedData.map((feedback) => {
-            const sentiment = summarizeSentiment(feedback);
-            const { compellingSlide } = extractHighlights(feedback);
-            
-            return (
-              <tr key={feedback.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {feedback.persona}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <SentimentBadge sentiment={sentiment} />
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                  {compellingSlide || 'N/A'}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                  {feedback.recommendation || 'No summary available'}
-                </td>
-                {onSelect && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => onSelect(feedback)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-// Main component
-const FeedbackViewer: React.FC<FeedbackViewerProps> = ({ 
-  feedbackData, 
-  viewMode,
-  onSelectFeedback 
-}) => {
-  // Show placeholder if no data
-  if (!feedbackData || feedbackData.length === 0) {
+  const renderDecisionBadge = () => {
+    const { decision } = feedback.decision;
+    let badgeColor = '';
+    
+    switch (decision) {
+      case 'WOULD INVEST':
+        badgeColor = 'bg-green-100 text-green-800';
+        break;
+      case 'WOULD NOT INVEST':
+        badgeColor = 'bg-red-100 text-red-800';
+        break;
+      default:
+        badgeColor = 'bg-yellow-100 text-yellow-800';
+    }
+    
     return (
-      <div className="bg-gray-50 p-6 text-center rounded-lg border border-gray-200">
-        <p className="text-gray-500">No feedback available.</p>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${badgeColor}`}>
+        {decision}
+      </span>
+    );
+  };
+  
+  const renderCardView = () => {
+    return (
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="px-4 py-5 sm:px-6 flex justify-between">
+          <div>
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              {feedback.personaName}
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              {feedback.personaType}
+            </p>
+          </div>
+          <div>
+            {renderDecisionBadge()}
+            <span className="ml-2 text-sm text-gray-500">
+              Confidence: {feedback.decision.confidence}
+            </span>
+          </div>
+        </div>
+        
+        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <h4 className="text-md font-medium text-gray-900">Initial Impression</h4>
+          <p className="mt-1 text-sm text-gray-600">{feedback.initialImpression}</p>
+        </div>
+        
+        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <h4 className="text-md font-medium text-gray-900">Key Takeaways</h4>
+          <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            <div className="sm:col-span-1">
+              <h5 className="text-sm font-medium text-gray-500">Strengths</h5>
+              <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
+                {feedback.keyTakeaways
+                  .filter(item => item.type === 'strength')
+                  .map((item, index) => (
+                    <li key={`strength-${index}`}>{item.text}</li>
+                  ))
+                }
+              </ul>
+            </div>
+            <div className="sm:col-span-1">
+              <h5 className="text-sm font-medium text-gray-500">Concerns</h5>
+              <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
+                {feedback.keyTakeaways
+                  .filter(item => item.type === 'concern')
+                  .map((item, index) => (
+                    <li key={`concern-${index}`}>{item.text}</li>
+                  ))
+                }
+              </ul>
+            </div>
+            <div className="sm:col-span-2 mt-4">
+              <h5 className="text-sm font-medium text-gray-500">Follow-up Questions</h5>
+              <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
+                {feedback.keyTakeaways
+                  .filter(item => item.type === 'question')
+                  .map((item, index) => (
+                    <li key={`question-${index}`}>{item.text}</li>
+                  ))
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+          <h4 className="text-md font-medium text-gray-900">Slide-by-Slide Analysis</h4>
+          <div className="mt-2 space-y-4">
+            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]) => (
+              <div key={`slide-${slideNumber}`} className="border rounded-md p-3">
+                <div 
+                  className="flex justify-between items-center cursor-pointer" 
+                  onClick={() => toggleSlideExpansion(slideNumber)}
+                >
+                  <h5 className="text-sm font-medium">Slide {slideNumber}</h5>
+                  <span className="text-sm text-gray-500">
+                    {expandedSlides.includes(slideNumber) ? '▼' : '▶'}
+                  </span>
+                </div>
+                
+                {expandedSlides.includes(slideNumber) && (
+                  <p className="mt-2 text-sm text-gray-600">{slideContent}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
-  }
-
-  return (
-    <div className="mt-4">
-      {viewMode === 'card' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {feedbackData.map((feedback) => (
-            <FeedbackCard 
-              key={feedback.id} 
-              feedback={feedback} 
-              onSelect={onSelectFeedback}
-            />
-          ))}
-        </div>
-      ) : (
-        <FeedbackTable 
-          feedbackData={feedbackData} 
-          onSelect={onSelectFeedback}
-        />
-      )}
-    </div>
-  );
+  };
+  
+  const renderTableView = () => {
+    return (
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Slide
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Feedback
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                Overall
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500">
+                <div className="mb-2">{renderDecisionBadge()} - {feedback.decision.confidence}</div>
+                <p className="mb-2">{feedback.initialImpression}</p>
+                <div className="mt-3">
+                  <strong>Strengths:</strong>
+                  <ul className="list-disc list-inside">
+                    {feedback.keyTakeaways
+                      .filter(item => item.type === 'strength')
+                      .map((item, index) => (
+                        <li key={`str-${index}`}>{item.text}</li>
+                      ))
+                    }
+                  </ul>
+                </div>
+                <div className="mt-2">
+                  <strong>Concerns:</strong>
+                  <ul className="list-disc list-inside">
+                    {feedback.keyTakeaways
+                      .filter(item => item.type === 'concern')
+                      .map((item, index) => (
+                        <li key={`con-${index}`}>{item.text}</li>
+                      ))
+                    }
+                  </ul>
+                </div>
+              </td>
+            </tr>
+            
+            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]) => (
+              <tr key={`slide-row-${slideNumber}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Slide {slideNumber}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {slideContent}
+                </td>
+              </tr>
+            ))}
+            
+            <tr>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                Questions
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500">
+                <ul className="list-decimal list-inside">
+                  {feedback.keyTakeaways
+                    .filter(item => item.type === 'question')
+                    .map((item, index) => (
+                      <li key={`q-${index}`}>{item.text}</li>
+                    ))
+                  }
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+  
+  return viewMode === 'card' ? renderCardView() : renderTableView();
 };
 
 export default FeedbackViewer; 

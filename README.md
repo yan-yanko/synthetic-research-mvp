@@ -1,10 +1,130 @@
-# Synthetic Investor Feedback Platform
+# Synthetic Research MVP
 
-## Purpose
+A platform for analyzing startup pitch decks and providing synthetic investor feedback.
 
-This platform helps startup founders simulate high-quality investor feedback on their pitch materials. Founders can upload their elevator pitch and pitch deck, and the system returns structured, role-specific responses from synthetic VC personas.
+## Overview
 
-This is not a toy. It's a fundraising decision-support engine built on top of LLMs, driven by real investor patterns, and designed to help founders clarify their pitch before stepping into real meetings.
+This MVP provides tools to analyze startup pitch decks and elevator pitches using synthetic investor personas. The system simulates the feedback different types of investors might provide, based on their investment preferences, behavioral traits, and communication styles. It also includes a follow-up simulation layer that enables a conversational experience with the synthetic investors.
+
+## Key Features
+
+- **PDF Pitch Deck Analysis**: Upload PDF pitch decks for detailed analysis
+- **Elevator Pitch Text Analysis**: Provide text-based elevator pitches for quick feedback
+- **Synthetic Investor Personas**: Multiple investor archetypes with different investment theses:
+  - **Jordan**: Traction-Driven Operator focused on activation metrics and GTM execution
+  - **Alex**: SaaS Category Expert concerned with vertical B2B problems and defensibility
+  - **Ravi**: AI Skeptic who demands technical rigor and auditability
+- **Detailed Feedback**: Per-slide analysis with sentiment and improvement suggestions
+- **Investment Decision Simulation**: Get realistic assessment of investment potential
+- **AI Panel Summary**: Aggregated feedback with consensus analysis across all personas
+- **Follow-Up Simulations**: Respond to investor concerns and see how their stance changes
+
+## Architecture
+
+- **Frontend**: React components for displaying investor feedback
+- **Core Engine**: TypeScript-based synthetic persona engine for feedback generation
+- **LLM Integration**: Modular design for connecting to different LLM providers
+- **Feedback Analysis**: Tools for extracting insights from investor feedback
+
+## Components
+
+### Core Files
+
+- `personas/investorPersonas.ts` - Defines investor personas and their characteristics
+- `generateInvestorFeedback.ts` - Main entry point for generating feedback
+- `utils/buildPrompt.ts` - Constructs LLM prompts based on persona traits
+- `utils/responseProcessing.ts` - Parses and structures LLM responses
+- `utils/llmClient.ts` - Client for making API calls to language models
+- `utils/summarizeInvestorPanel.ts` - Aggregates multi-persona feedback into consensus insights
+- `utils/simulateFollowUp.ts` - Simulates investor responses to follow-up explanations
+
+### UI Components
+
+- `components/InvestorPanel.tsx` - Main component for displaying all investor feedback
+- `components/FeedbackViewer.tsx` - Component for detailed feedback display
+- `components/InvestorSummaryPanel.tsx` - Displays aggregated investor panel insights
+- `components/FollowUpPanel.tsx` - Interface for responding to individual investor feedback
+
+## Usage
+
+### Basic Usage
+
+```jsx
+import { InvestorPanel } from '../components/InvestorPanel';
+
+// Your pitch deck slides as an array of strings (one per slide)
+const deckSlides = [
+  'Introduction to Our Company',
+  'The Problem We Solve',
+  // ... more slides
+];
+
+// Your elevator pitch as a string
+const elevatorPitch = "Our company transforms...";
+
+// Render the panel
+function PitchAnalysisPage() {
+  return (
+    <div>
+      <h1>Investor Feedback</h1>
+      <InvestorPanel 
+        deckSlides={deckSlides} 
+        elevatorPitch={elevatorPitch} 
+      />
+    </div>
+  );
+}
+```
+
+### Feedback Flow
+
+1. **Initial Analysis**: Upload pitch deck and elevator pitch to get feedback from multiple investor personas
+2. **Review Summary**: See aggregated insights across all personas in the AI Panel Summary
+3. **Deep Dive**: Expand individual investor feedback to see detailed, slide-by-slide analysis
+4. **Follow-Up**: Respond to specific investor concerns and see how their assessment changes
+5. **Iterate**: Use insights to improve pitch materials and try again
+
+### Customizing LLM Configuration
+
+```jsx
+import { generateInvestorFeedback } from '../generateInvestorFeedback';
+
+// Custom configuration
+const customConfig = {
+  model: 'gpt-4-turbo',
+  temperature: 0.8,
+  apiKey: 'your-api-key'
+};
+
+// Generate feedback with custom config
+const feedback = await generateInvestorFeedback(deckSlides, elevatorPitch, customConfig);
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (14.x or higher)
+- npm or yarn
+- OpenAI API key (or other LLM provider)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Create an `.env.local` file with your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your-api-key-here
+   ```
+4. Start the development server: `npm run dev`
+
+## Development
+
+To extend with new investor personas, edit `personas/investorPersonas.ts` and add new persona objects with appropriate traits and investment theses.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Current Features
 
