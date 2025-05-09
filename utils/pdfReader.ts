@@ -85,9 +85,21 @@ export async function extractPPTContent(file: File): Promise<{ slides: string[],
 /**
  * Determines the appropriate parser based on file extension and processes the file
  */
-export async function processFileContent(file: File): Promise<{ slides: string[], pitch: string }> {
+export async function processFileContent(fileOrUrl: File | string): Promise<{ slides: string[], pitch: string }> {
+  if (typeof fileOrUrl === 'string') {
+    // Google Slides URL: call backend
+    const formData = new FormData();
+    formData.append('googleSlidesUrl', fileOrUrl);
+    const response = await fetch('/api/upload/deck', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to process Google Slides');
+    return { slides: data.slides, pitch: data.pitch };
+  }
+  const file = fileOrUrl;
   const fileType = file.name.split('.').pop()?.toLowerCase();
-  
   switch (fileType) {
     case 'pdf':
       return extractPDFContent(file);
@@ -95,6 +107,6 @@ export async function processFileContent(file: File): Promise<{ slides: string[]
     case 'pptx':
       return extractPPTContent(file);
     default:
-      throw new Error('Unsupported file type. Please use PDF, PPT, or PPTX files.');
+      throw new Error('Unsupported file type. Please use PDF, PPT, PPTX, or Google Slides.');
   }
 } 

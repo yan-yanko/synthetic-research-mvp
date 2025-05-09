@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { processFileContent } from '../utils/pdfReader';
 
 export interface FileUploadPanelProps {
-  onSlidesDetected: (slides: string[], pitch: string, file: File) => void;
+  onSlidesDetected: (slides: string[], pitch: string, file: File | null) => void;
   initialPitch?: string;
 }
 
@@ -16,6 +16,7 @@ export function FileUploadPanel({ onSlidesDetected, initialPitch = '' }: FileUpl
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isAutoDetectedPitch, setIsAutoDetectedPitch] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [googleSlidesUrl, setGoogleSlidesUrl] = useState<string>("");
 
   // Handle file upload 
   const handleFileUpload = async (file: File | null) => {
@@ -50,6 +51,38 @@ export function FileUploadPanel({ onSlidesDetected, initialPitch = '' }: FileUpl
     }
   };
 
+  // Handle Google Slides URL submission
+  const handleGoogleSlidesSubmit = async () => {
+    if (!googleSlidesUrl.trim()) {
+      setError('Please enter a Google Slides URL');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      // Call backend API to process Google Slides
+      const formData = new FormData();
+      formData.append('googleSlidesUrl', googleSlidesUrl.trim());
+      const response = await fetch('/api/upload/deck', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || 'Failed to process Google Slides');
+        setLoading(false);
+        return;
+      }
+      setPitchText(data.pitch || '');
+      setIsAutoDetectedPitch(true);
+      onSlidesDetected(data.slides, data.pitch, null);
+      setLoading(false);
+    } catch (err) {
+      setError('Failed to process Google Slides');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="mb-6 p-4 border rounded-md bg-gray-50">
       <h3 className="text-lg font-semibold mb-3">Upload Your Pitch Deck</h3>
@@ -63,13 +96,17 @@ export function FileUploadPanel({ onSlidesDetected, initialPitch = '' }: FileUpl
               accept=".pdf,.ppt,.pptx"
               ref={fileInputRef}
               className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                setGoogleSlidesUrl("");
+                handleFileUpload(e.target.files?.[0] || null);
+              }}
+              disabled={!!googleSlidesUrl || loading}
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-              disabled={loading}
+              disabled={!!googleSlidesUrl || loading}
             >
               Choose File
             </button>
@@ -86,6 +123,28 @@ export function FileUploadPanel({ onSlidesDetected, initialPitch = '' }: FileUpl
               <p><span className="font-medium">Size:</span> {Math.round(uploadedFile.size / 1024)} KB</p>
             </div>
           )}
+          <div className="mt-4">
+            <label className="block mb-2 text-sm font-medium">Or paste a Google Slides URL:</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              placeholder="https://docs.google.com/presentation/d/..."
+              value={googleSlidesUrl}
+              onChange={e => {
+                setGoogleSlidesUrl(e.target.value);
+                setUploadedFile(null);
+              }}
+              disabled={!!uploadedFile || loading}
+            />
+            <button
+              type="button"
+              className="mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
+              onClick={handleGoogleSlidesSubmit}
+              disabled={!!uploadedFile || loading || !googleSlidesUrl.trim()}
+            >
+              Use Google Slides
+            </button>
+          </div>
         </div>
         
         <div className="flex-grow">
