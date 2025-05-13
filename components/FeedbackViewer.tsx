@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FeedbackResponse } from '../types/feedback';
+import { FeedbackResponse } from '@/types/feedback';
 
 // Adding the FeedbackItem interface to maintain backward compatibility with existing code
 export interface FeedbackItem {
@@ -111,7 +111,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'strength')
-                  .map((item: { type: string; text: string; }, index: number) => (
+                  .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                     <li key={`strength-${index}`}>{item.text}</li>
                   ))
                 }
@@ -122,7 +122,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'concern')
-                  .map((item: { type: string; text: string; }, index: number) => (
+                  .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                     <li key={`concern-${index}`}>{item.text}</li>
                   ))
                 }
@@ -133,7 +133,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'question')
-                  .map((item: { type: string; text: string; }, index: number) => (
+                  .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                     <li key={`question-${index}`}>{item.text}</li>
                   ))
                 }
@@ -145,7 +145,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
         <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
           <h4 className="text-md font-medium text-gray-900">Slide-by-Slide Analysis</h4>
           <div className="mt-2 space-y-4">
-            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]) => (
+            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]: [number, string]) => (
               <div key={`slide-${slideNumber}`} className="border rounded-md p-3">
                 <div 
                   className="flex justify-between items-center cursor-pointer" 
@@ -195,7 +195,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                   <ul className="list-disc list-inside">
                     {feedback.keyTakeaways
                       .filter(item => item.type === 'strength')
-                      .map((item: { type: string; text: string; }, index: number) => (
+                      .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                         <li key={`str-${index}`}>{item.text}</li>
                       ))
                     }
@@ -206,7 +206,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                   <ul className="list-disc list-inside">
                     {feedback.keyTakeaways
                       .filter(item => item.type === 'concern')
-                      .map((item: { type: string; text: string; }, index: number) => (
+                      .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                         <li key={`con-${index}`}>{item.text}</li>
                       ))
                     }
@@ -215,7 +215,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               </td>
             </tr>
             
-            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]) => (
+            {Array.from(feedback.slideAnalysis.entries()).map(([slideNumber, slideContent]: [number, string]) => (
               <tr key={`slide-row-${slideNumber}`}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   Slide {slideNumber}
@@ -234,7 +234,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                 <ul className="list-decimal list-inside">
                   {feedback.keyTakeaways
                     .filter(item => item.type === 'question')
-                    .map((item: { type: string; text: string; }, index: number) => (
+                    .map((item: { type: 'strength' | 'concern' | 'question'; text: string; }, index: number) => (
                       <li key={`q-${index}`}>{item.text}</li>
                     ))
                   }
