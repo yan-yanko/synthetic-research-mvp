@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { simulateFollowUp, analyzeFollowUpChanges } from '../utils/simulateFollowUp';
+import { simulateFollowUp } from '../utils/simulateFollowUp';
 import { FeedbackResponse, FollowUpResponse } from '../types/feedback';
 import { SyntheticInvestor } from '../types/personas';
 import { LoadingIndicator } from './LoadingIndicator';
@@ -43,38 +43,6 @@ export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Analyze changes between initial and follow-up responses
-  const getChangeAnalysis = () => {
-    if (!followUpResponse) return null;
-    
-    const analysis = analyzeFollowUpChanges(feedback, followUpResponse.updatedResponse);
-    
-    return (
-      <div className="mt-6 p-3 bg-blue-50 border border-blue-100 rounded">
-        <h5 className="text-sm font-medium text-blue-900 mb-2">Changes in Assessment</h5>
-        {analysis.changes.length > 0 ? (
-          <ul className="list-disc list-inside text-sm">
-            {analysis.changes.map((change, idx) => (
-              <li key={idx} className="text-blue-800">{change}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-blue-800">No significant changes detected in assessment.</p>
-        )}
-        
-        <div className="mt-2 text-xs">
-          <span className="font-medium">Overall change significance: </span>
-          <span className={`
-            ${analysis.significance === 'significant' ? 'text-blue-900 font-bold' : 
-              analysis.significance === 'moderate' ? 'text-blue-800' : 'text-blue-700'}
-          `}>
-            {analysis.significance}
-          </span>
-        </div>
-      </div>
-    );
   };
   
   // Extract sections from updated response
@@ -144,8 +112,6 @@ export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
             <p className="mt-1 text-gray-700">{followupQuestion}</p>
           </div>
         )}
-        
-        {getChangeAnalysis()}
       </div>
     );
   };
