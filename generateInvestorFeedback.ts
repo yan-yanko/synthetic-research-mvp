@@ -10,7 +10,7 @@ import {
   parseSlideAnalysis,
   extractInitialImpression
 } from './utils/responseProcessing';
-import { FeedbackResponse } from './types/feedback';
+import { FeedbackResponse } from '@/types/feedback';
 import { LOG_RAW_LLM_RESPONSE } from './constants';
 
 /**
