@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FeedbackResponse } from '../generateInvestorFeedback';
+import { FeedbackResponse } from '../types/feedback';
 
 // Adding the FeedbackItem interface to maintain backward compatibility with existing code
 export interface FeedbackItem {
@@ -111,7 +111,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'strength')
-                  .map((item, index) => (
+                  .map((item: { type: string; text: string; }, index: number) => (
                     <li key={`strength-${index}`}>{item.text}</li>
                   ))
                 }
@@ -122,7 +122,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'concern')
-                  .map((item, index) => (
+                  .map((item: { type: string; text: string; }, index: number) => (
                     <li key={`concern-${index}`}>{item.text}</li>
                   ))
                 }
@@ -133,7 +133,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
               <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
                 {feedback.keyTakeaways
                   .filter(item => item.type === 'question')
-                  .map((item, index) => (
+                  .map((item: { type: string; text: string; }, index: number) => (
                     <li key={`question-${index}`}>{item.text}</li>
                   ))
                 }
@@ -195,7 +195,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                   <ul className="list-disc list-inside">
                     {feedback.keyTakeaways
                       .filter(item => item.type === 'strength')
-                      .map((item, index) => (
+                      .map((item: { type: string; text: string; }, index: number) => (
                         <li key={`str-${index}`}>{item.text}</li>
                       ))
                     }
@@ -206,7 +206,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                   <ul className="list-disc list-inside">
                     {feedback.keyTakeaways
                       .filter(item => item.type === 'concern')
-                      .map((item, index) => (
+                      .map((item: { type: string; text: string; }, index: number) => (
                         <li key={`con-${index}`}>{item.text}</li>
                       ))
                     }
@@ -234,7 +234,7 @@ const FeedbackViewer: React.FC<FeedbackViewerProps> = ({
                 <ul className="list-decimal list-inside">
                   {feedback.keyTakeaways
                     .filter(item => item.type === 'question')
-                    .map((item, index) => (
+                    .map((item: { type: string; text: string; }, index: number) => (
                       <li key={`q-${index}`}>{item.text}</li>
                     ))
                   }
