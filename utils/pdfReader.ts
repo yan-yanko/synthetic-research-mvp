@@ -3,10 +3,9 @@
  * Simple utility for extracting text content from PDF files in the browser
  */
 
-import { GlobalWorkerOptions } from 'pdfjs-dist';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+import { GlobalWorkerOptions, getDocument, version } from 'pdfjs-dist';
 
-GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
 
 /**
  * Extracts text content from a PDF file
@@ -15,7 +14,7 @@ GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs
  */
 export async function extractPDFContent(file: File): Promise<{ slides: string[] }> {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await getDocument({ data: arrayBuffer }).promise;
   const slides: string[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
