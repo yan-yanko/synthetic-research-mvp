@@ -10,7 +10,6 @@
  * Output:
  *  - object: {
  *      name: string (e.g. "Seed-Stage SaaS VC"),
- *      tone: string,
  *      background: string (used in GPT prompt)
  *    }
  * 
@@ -31,7 +30,7 @@
  * investor profile based on keywords and content themes.
  * 
  * @param {string} text - The text content of the pitch deck
- * @returns {Object} An investor profile object with name, tone, and background
+ * @returns {Object} An investor profile object with name and background
  */
 export function matchInvestorFromText(text) {
   const lowered = text.toLowerCase();
@@ -41,7 +40,6 @@ export function matchInvestorFromText(text) {
       (lowered.includes('saas') || lowered.includes('software as a service'))) {
     return {
       name: "Seed-Stage B2B SaaS VC",
-      tone: "metrics-focused, strategic",
       background: "Invests in scalable B2B software with strong GTM motion"
     };
   }
@@ -53,7 +51,6 @@ export function matchInvestorFromText(text) {
       lowered.includes('marketplace')) {
     return {
       name: "Consumer Angel Investor",
-      tone: "mission-aligned, UX-driven",
       background: "Former founder, backs early consumer ideas based on vision"
     };
   }
@@ -65,7 +62,6 @@ export function matchInvestorFromText(text) {
       lowered.includes('healthcare')) {
     return {
       name: "Healthcare VC",
-      tone: "analytical, regulatory-aware",
       background: "Seeks innovative solutions with strong IP and clinical validation"
     };
   }
@@ -77,7 +73,6 @@ export function matchInvestorFromText(text) {
       lowered.includes('deep tech')) {
     return {
       name: "Deep Tech Investor",
-      tone: "technical, visionary",
       background: "Invests in foundational technologies with defensible IP and significant technical moats"
     };
   }
@@ -85,7 +80,6 @@ export function matchInvestorFromText(text) {
   // Default to generalist
   return {
     name: "Generalist Pre-Seed VC",
-    tone: "open-minded, skeptical",
     background: "Looks for clarity, grit, and category insight"
   };
 } 

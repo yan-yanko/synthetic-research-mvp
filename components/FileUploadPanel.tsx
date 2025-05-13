@@ -1,183 +1,98 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { processFileContent } from '../utils/pdfReader';
+import { generateInvestorFeedback } from '../generateInvestorFeedback';
+import { InvestorPanel } from './InvestorPanel';
+import { InvestorSummaryPanel } from './InvestorSummaryPanel';
+import { LoadingIndicator } from './LoadingIndicator';
+// @ts-ignore
+const html2pdf: any = require('html2pdf.js');
 
-export interface FileUploadPanelProps {
-  onSlidesDetected: (slides: string[], pitch: string, file: File | null) => void;
-  initialPitch?: string;
+interface FileUploadPanelProps {
+  onUploadComplete: (slides: string[], file: File | null) => void;
 }
 
-/**
- * A component for uploading and processing pitch deck files
- */
-export function FileUploadPanel({ onSlidesDetected, initialPitch = '' }: FileUploadPanelProps) {
-  const [pitchText, setPitchText] = useState<string>(initialPitch);
+export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
   const [error, setError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isAutoDetectedPitch, setIsAutoDetectedPitch] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [googleSlidesUrl, setGoogleSlidesUrl] = useState<string>("");
+  const [feedback, setFeedback] = useState<any>(null);
+  const [slides, setSlides] = useState<string[]>([]);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // Handle file upload 
-  const handleFileUpload = async (file: File | null) => {
+  // Handle file selection and processing
+  const handleFileChange = useCallback(async (file: File | null) => {
     if (!file) {
       setError('No file selected');
+      setUploadedFile(null);
       return;
     }
-    
     setUploadedFile(file);
     setError('');
     setLoading(true);
-    
     try {
-      // Process the file using our utility
-      const { slides, pitch } = await processFileContent(file);
-      
-      // Only update the pitch if it's not already set or if it's the default value
-      if (pitch) {
-        setPitchText(pitch);
-        setIsAutoDetectedPitch(true);
-      }
-      
-      console.log(`Processed ${slides.length} slides from ${file.name}`);
-      
-      // Notify parent component of detected slides and pitch
-      onSlidesDetected(slides, pitchText || pitch, file);
-      setLoading(false);
+      // Only process the file here
+      const { slides } = await processFileContent(file);
+      // Pass slides and file info to parent
+      onUploadComplete(slides, file);
     } catch (err) {
-      console.error('Error processing file:', err);
       setError(err instanceof Error ? err.message : 'Failed to process the uploaded file');
+      // Clear uploaded file state on error
+      setUploadedFile(null);
+      onUploadComplete([], null); // Notify parent of failure
+    } finally {
       setLoading(false);
     }
-  };
+  }, [onUploadComplete]);
 
-  // Handle Google Slides URL submission
-  const handleGoogleSlidesSubmit = async () => {
-    if (!googleSlidesUrl.trim()) {
-      setError('Please enter a Google Slides URL');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    try {
-      // Call backend API to process Google Slides
-      const formData = new FormData();
-      formData.append('googleSlidesUrl', googleSlidesUrl.trim());
-      const response = await fetch('/api/upload/deck', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || 'Failed to process Google Slides');
-        setLoading(false);
-        return;
-      }
-      setPitchText(data.pitch || '');
-      setIsAutoDetectedPitch(true);
-      onSlidesDetected(data.slides, data.pitch, null);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to process Google Slides');
-      setLoading(false);
+  const handleExportPDF = () => {
+    if (feedbackRef.current) {
+      html2pdf().from(feedbackRef.current).save('investor-feedback.pdf');
     }
   };
 
   return (
-    <div className="mb-6 p-4 border rounded-md bg-gray-50">
-      <h3 className="text-lg font-semibold mb-3">Upload Your Pitch Deck</h3>
-      
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-grow">
-          <label className="block mb-2 text-sm font-medium">Select a file:</label>
-          <div className="flex items-center gap-2">
+    <div className="mb-8 p-6 border border-gray-200 rounded-xl bg-white shadow-sm">
+      <h2 className="text-xl font-bold mb-4 text-gray-900">1. Upload Your Pitch Deck (PDF only)</h2>
+      <div className="flex flex-col gap-6">
+        <div>
+          <label className="block mb-2 text-base font-medium text-gray-700">Select a PDF file:</label>
+          <div className="flex items-center gap-3">
             <input
               type="file"
-              accept=".pdf,.ppt,.pptx"
+              accept=".pdf"
               ref={fileInputRef}
               className="hidden"
-              onChange={(e) => {
-                setGoogleSlidesUrl("");
-                handleFileUpload(e.target.files?.[0] || null);
-              }}
-              disabled={!!googleSlidesUrl || loading}
+              onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+              disabled={loading}
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-              disabled={!!googleSlidesUrl || loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded shadow-sm"
+              disabled={loading}
             >
-              Choose File
+              Choose PDF File
             </button>
             <span className="text-sm text-gray-600">
               {uploadedFile ? uploadedFile.name : 'No file selected'}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Accepted formats: .pdf, .ppt, .pptx</p>
-          
-          {/* File details */}
+          <p className="text-xs text-gray-500 mt-1">Accepted format: <span className="font-semibold">.pdf</span> only</p>
           {uploadedFile && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
+            <div className="mt-3 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
               <p><span className="font-medium">File:</span> {uploadedFile.name}</p>
               <p><span className="font-medium">Size:</span> {Math.round(uploadedFile.size / 1024)} KB</p>
             </div>
           )}
-          <div className="mt-4">
-            <label className="block mb-2 text-sm font-medium">Or paste a Google Slides URL:</label>
-            <input
-              type="text"
-              className="w-full p-2 border rounded"
-              placeholder="https://docs.google.com/presentation/d/..."
-              value={googleSlidesUrl}
-              onChange={e => {
-                setGoogleSlidesUrl(e.target.value);
-                setUploadedFile(null);
-              }}
-              disabled={!!uploadedFile || loading}
-            />
-            <button
-              type="button"
-              className="mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
-              onClick={handleGoogleSlidesSubmit}
-              disabled={!!uploadedFile || loading || !googleSlidesUrl.trim()}
-            >
-              Use Google Slides
-            </button>
-          </div>
-        </div>
-        
-        <div className="flex-grow">
-          <label className="block mb-2 text-sm font-medium">
-            Elevator pitch:
-            {isAutoDetectedPitch && (
-              <span className="ml-2 text-xs bg-yellow-100 px-2 py-0.5 rounded-full text-yellow-800">
-                Auto-detected
-              </span>
-            )}
-          </label>
-          <textarea
-            value={pitchText}
-            onChange={(e) => {
-              setPitchText(e.target.value);
-              // If user edits the pitch, it's no longer auto-detected
-              if (isAutoDetectedPitch) {
-                setIsAutoDetectedPitch(false);
-              }
-            }}
-            className={`w-full p-2 border rounded resize-none ${isAutoDetectedPitch ? 'bg-yellow-50 border-yellow-300' : ''}`}
-            rows={3}
-            placeholder="Describe your startup in a few sentences..."
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {isAutoDetectedPitch 
-              ? 'This pitch was automatically extracted from your document. Edit as needed.' 
-              : 'Enter a brief elevator pitch about your startup.'}
-          </p>
         </div>
       </div>
-      
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+      {loading && (
+        <div className="mt-6 flex justify-center">
+          <LoadingIndicator message="Processing PDF..." size="large" />
+        </div>
+      )}
+      {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>}
     </div>
   );
 } 

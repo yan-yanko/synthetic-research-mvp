@@ -16,6 +16,9 @@
   "build": {
     "env": {
       "PDF_EXPORT_ENABLED": "false"
-    }
+    },
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "framework": "nextjs"
   }
 }

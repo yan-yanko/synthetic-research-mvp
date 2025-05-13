@@ -1,12 +1,4 @@
-export interface SyntheticInvestor {
-  id: string;
-  name: string;
-  type: 'Angel' | 'Seed VC' | 'Series A VC' | 'Corporate VC';
-  investmentThesis: string;
-  behavioralTraits: string[]; // e.g., ['risk-averse', 'traction-focused']
-  quoteStyle: 'blunt' | 'polished' | 'visionary';
-  publicDataAnchors: string[]; // e.g., ['a16z blog', 'Twitter', 'TechCrunch', 'Reddit']
-}
+// import { SyntheticInvestor } from '../../../../types/personas';
 
 export const SyntheticInvestorSchema = {
   type: "object",

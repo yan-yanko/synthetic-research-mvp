@@ -1,6 +1,8 @@
-import { investorPersonas, SyntheticInvestor } from './personas/investorPersonas';
+import { investorPersonas } from './personas/investorPersonas';
+import { SyntheticInvestor } from './types/personas';
 import { buildPrompt, buildEnhancedPrompt } from './utils/buildPrompt';
-import { createLLMClient, LLMClientConfig } from './utils/llmClient';
+import { createLLMClient } from './utils/llmClient';
+import { LLMClientConfig } from './types/api';
 import { 
   extractSentiment, 
   extractHighlights, 
@@ -8,24 +10,8 @@ import {
   parseSlideAnalysis,
   extractInitialImpression
 } from './utils/responseProcessing';
-
-export interface FeedbackResponse {
-  personaId: string;
-  personaName: string;
-  personaType: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  initialImpression: string;
-  slideAnalysis: Map<number, string>;
-  decision: {
-    decision: string;
-    confidence: string;
-  };
-  keyTakeaways: {
-    type: 'strength' | 'concern' | 'question';
-    text: string;
-  }[];
-  fullResponse: string;
-}
+import { FeedbackResponse } from './types/feedback';
+import { LOG_RAW_LLM_RESPONSE } from './constants';
 
 /**
  * Generates investor feedback from all available personas for a pitch deck
@@ -92,21 +78,56 @@ export async function generateFeedbackFromPersona(
 }
 
 /**
- * Processes the raw LLM response into a structured feedback object
- * @param response - The raw text response from the LLM
+ * Processes the raw LLM response (expected to be JSON) into a structured feedback object
+ * @param rawJsonResponse - The raw JSON string response from the LLM
  * @param persona - The investor persona used to generate the response
- * @returns Structured feedback response
+ * @returns Structured feedback response conforming to types/feedback.ts
+ * @throws Error if the response is not valid JSON or missing expected fields
  */
-function processResponse(response: string, persona: SyntheticInvestor): FeedbackResponse {
-  return {
-    personaId: persona.id,
-    personaName: persona.name,
-    personaType: persona.type,
-    sentiment: extractSentiment(response),
-    initialImpression: extractInitialImpression(response),
-    slideAnalysis: parseSlideAnalysis(response),
-    decision: extractDecision(response),
-    keyTakeaways: extractHighlights(response),
-    fullResponse: response
-  };
+function processResponse(rawJsonResponse: string, persona: SyntheticInvestor): FeedbackResponse {
+  // Optionally log raw response for debugging
+  if (LOG_RAW_LLM_RESPONSE) {
+    console.log(`[DEBUG] Raw LLM Response for ${persona.name}:\n`, rawJsonResponse);
+  }
+
+  try {
+    // Attempt to parse the JSON response
+    const parsedData = JSON.parse(rawJsonResponse);
+
+    // Basic validation (add more checks as needed)
+    if (!parsedData.sentiment || !parsedData.initialImpression || !parsedData.slideAnalysis || !parsedData.decision || !parsedData.keyTakeaways) {
+      throw new Error('LLM response is missing required fields.');
+    }
+
+    // Convert slideAnalysis array to Map
+    const slideAnalysisMap = new Map<number, string>();
+    if (Array.isArray(parsedData.slideAnalysis)) {
+      parsedData.slideAnalysis.forEach((item: { slideNumber: number; feedback: string }) => {
+        if (typeof item.slideNumber === 'number' && typeof item.feedback === 'string') {
+          slideAnalysisMap.set(item.slideNumber, item.feedback);
+        }
+      });
+    } else {
+      // Handle case where slideAnalysis might not be an array, though prompt requests it
+      console.warn(`Persona ${persona.name}: LLM did not return slideAnalysis as an array.`);
+    }
+
+    // Construct the FeedbackResponse object using the imported type
+    return {
+      personaId: persona.id,
+      personaName: persona.name,
+      personaType: persona.type,
+      sentiment: parsedData.sentiment,
+      initialImpression: parsedData.initialImpression,
+      slideAnalysis: slideAnalysisMap, // Use the converted Map
+      decision: parsedData.decision, 
+      keyTakeaways: parsedData.keyTakeaways,
+      fullResponse: rawJsonResponse 
+    };
+  } catch (error) {
+    console.error('Error parsing LLM JSON response:', error);
+    // Log the raw response on error regardless of the flag
+    console.error("Raw LLM Response (on error):", rawJsonResponse);
+    throw new Error(`Failed to parse LLM response for persona ${persona.name}: ${error instanceof Error ? error.message : 'Unknown parsing error'}`);
+  }
 } 

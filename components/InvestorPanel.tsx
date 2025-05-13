@@ -1,34 +1,35 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { generateInvestorFeedback } from '../generateInvestorFeedback';
 import { investorPersonas } from '../personas/investorPersonas';
 import FeedbackViewer from './FeedbackViewer';
 import { InvestorSummaryPanel } from './InvestorSummaryPanel';
 import { FollowUpPanel } from './FollowUpPanel';
-import { FileUploadPanel } from './FileUploadPanel';
 import { SlideReviewPanel } from './SlideReviewPanel';
 import { LoadingIndicator } from './LoadingIndicator';
 import { FeedbackResponse } from '../types/feedback';
 import { SyntheticInvestor } from '../types/personas';
 
+// @ts-ignore - Add html2pdf import if not present
+const html2pdf: any = require('html2pdf.js');
+
 interface InvestorPanelProps {
   deckSlides?: string[];
   elevatorPitch?: string;
+  uploadedFileName?: string;
 }
 
 /**
  * Main component for investor feedback analysis
  */
-export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorPanelProps) {
+export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFileName }: InvestorPanelProps) {
   const [feedback, setFeedback] = useState<FeedbackResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [expandedPersona, setExpandedPersona] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(true);
-  const [parsedSlides, setParsedSlides] = useState<string[]>(deckSlides);
-  const [pitchText, setPitchText] = useState<string>(elevatorPitch);
   const [error, setError] = useState<string>("");
-  const [showParsedSlides, setShowParsedSlides] = useState<boolean>(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const feedbackExportRef = useRef<HTMLDivElement>(null);
 
   // Memoize the filtered persona
   const selectedPersona = useMemo(() => {
@@ -37,18 +38,10 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
       : null;
   }, [expandedPersona]);
 
-  // Handle file upload results
-  const handleSlidesDetected = (slides: string[], pitch: string, file: File) => {
-    setParsedSlides(slides);
-    setPitchText(pitch);
-    setUploadedFile(file);
-    setShowParsedSlides(true);
-  };
-
   // Generate feedback from investor personas
   const generateFeedback = async () => {
-    if (!parsedSlides.length && !pitchText.trim()) {
-      setError("Please upload a file or enter an elevator pitch");
+    if (!deckSlides.length && !elevatorPitch.trim()) {
+      setError("Pitch deck slides or elevator pitch text is required.");
       return;
     }
 
@@ -56,10 +49,8 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     setError("");
     
     try {
-      const res = await generateInvestorFeedback(parsedSlides, pitchText);
+      const res = await generateInvestorFeedback(deckSlides, elevatorPitch);
       setFeedback(res);
-      // Hide parsed slides after generating feedback
-      setShowParsedSlides(false);
     } catch (error) {
       console.error('Error generating investor feedback:', error);
       setError('Failed to generate investor feedback. Please try again.');
@@ -67,6 +58,14 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
       setLoading(false);
     }
   };
+
+  // Trigger feedback generation automatically when props are available
+  useEffect(() => {
+    if (!initialLoadComplete && (deckSlides.length > 0 || elevatorPitch.trim())) {
+      generateFeedback();
+      setInitialLoadComplete(true);
+    }
+  }, [deckSlides, elevatorPitch, initialLoadComplete]);
 
   const togglePersonaExpansion = (personaId: string) => {
     if (expandedPersona === personaId) {
@@ -76,28 +75,37 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     }
   };
 
-  const getSentimentColor = (sentiment: string) => {
+  const getSentimentBadge = (sentiment: string) => {
+    let badgeClass = '';
+    let label = '';
     switch (sentiment) {
       case 'positive':
-        return 'text-green-600';
+        badgeClass = 'bg-green-100 text-green-800';
+        label = 'Positive';
+        break;
       case 'neutral':
-        return 'text-yellow-600';
+        badgeClass = 'bg-yellow-100 text-yellow-800';
+        label = 'Neutral';
+        break;
       case 'negative':
-        return 'text-red-600';
+        badgeClass = 'bg-red-100 text-red-800';
+        label = 'Negative';
+        break;
       default:
-        return 'text-gray-500';
+        badgeClass = 'bg-gray-100 text-gray-600';
+        label = sentiment;
     }
+    return <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>{label}</span>;
   };
 
-  if (loading) {
-    return (
-      <LoadingIndicator 
-        message="Simulating investor reactions..." 
-        subMessage="This might take a minute or two..." 
-        size="large"
-      />
-    );
-  }
+  const handleExportPDF = () => {
+    if (feedbackExportRef.current) {
+      const fileName = uploadedFileName 
+        ? `investor-feedback-${uploadedFileName.replace(/\.pdf$/i, '')}.pdf` 
+        : 'investor-feedback.pdf';
+      html2pdf().from(feedbackExportRef.current).set({ margin: 0.5, filename: fileName, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).save();
+    }
+  };
 
   const renderViewControls = () => (
     <div className="flex justify-between items-center mb-6">
@@ -157,9 +165,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
                   {f.personaName}
                 </th>
                 <td className="py-4 px-6">
-                  <span className={getSentimentColor(f.sentiment)}>
-                    {f.sentiment.charAt(0).toUpperCase() + f.sentiment.slice(1)}
-                  </span>
+                  {getSentimentBadge(f.sentiment)}
                 </td>
                 <td className="py-4 px-6">
                   {f.decision.decision}
@@ -191,9 +197,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">{f.personaName}</h3>
               <div className="flex space-x-2 items-center">
-                <span className={`text-sm font-medium ${getSentimentColor(f.sentiment)}`}>
-                  {f.sentiment.charAt(0).toUpperCase() + f.sentiment.slice(1)}
-                </span>
+                {getSentimentBadge(f.sentiment)}
                 <span className="bg-gray-200 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded">
                   {f.personaType}
                 </span>
@@ -255,15 +259,25 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     </div>
   );
 
-  const renderActionButtons = () => (
-    <div className="mt-4">
+  const renderActionAndExportButtons = () => (
+    <div className="mt-6 flex flex-col sm:flex-row justify-center items-center gap-4">
       <button
         type="button"
-        onClick={generateFeedback}
-        className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
+        onClick={generateFeedback} 
+        className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded w-full sm:w-auto"
+        disabled={loading} 
       >
-        Generate Feedback
+        {loading ? 'Generating...' : 'Regenerate Feedback'}
       </button>
+      {feedback.length > 0 && !loading && (
+        <button
+          type="button"
+          onClick={handleExportPDF}
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded w-full sm:w-auto"
+        >
+          Export to PDF
+        </button>
+      )}
     </div>
   );
 
@@ -271,56 +285,30 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "" }: InvestorP
     <div className="container mx-auto py-6">
       <h2 className="text-2xl font-bold text-center mb-6">Investor Feedback Analysis</h2>
       
-      {/* File Upload Panel */}
-      <FileUploadPanel 
-        onSlidesDetected={handleSlidesDetected} 
-        initialPitch={elevatorPitch}
-      />
-      
-      {/* Slide Review Panel */}
-      {showParsedSlides && (
-        <SlideReviewPanel 
-          slides={parsedSlides} 
-          onHideSlides={() => setShowParsedSlides(false)} 
-        />
-      )}
+      {error && <div className="my-4 p-3 bg-red-100 text-red-700 rounded border border-red-300">Error: {error}</div>}
 
-      {/* Generate feedback button */}
-      {!loading && (parsedSlides.length > 0 || pitchText) && (
-        renderActionButtons()
-      )}
+      <div ref={feedbackExportRef}>
+        {feedback.length > 0 && (
+          <>
+            {showSummary && <InvestorSummaryPanel feedback={feedback} />}
+            {renderViewControls()}
+            {viewMode === 'table' ? renderSummaryTable() : renderCardView()}
+          </>
+        )}
+      </div>
       
-      {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
-          {error}
+      {(feedback.length > 0 || deckSlides.length > 0 || elevatorPitch.trim()) && 
+        renderActionAndExportButtons() 
+      }
+
+      {loading && feedback.length === 0 && (
+        <div className="mt-8">
+            <LoadingIndicator 
+                message="Simulating investor reactions..." 
+                subMessage="This might take a minute or two..." 
+                size="large"
+            />
         </div>
-      )}
-      
-      {/* Show the summary panel at the top if enabled */}
-      {showSummary && feedback.length > 0 && (
-        <InvestorSummaryPanel feedback={feedback} />
-      )}
-      
-      {feedback.length > 0 && (
-        <>
-          {renderViewControls()}
-          {viewMode === 'table' ? renderSummaryTable() : renderCardView()}
-          
-          {expandedPersona && viewMode === 'table' && selectedPersona && (
-            <div className="mt-6 p-4 border rounded-xl bg-white">
-              <h3 className="text-lg font-bold mb-4">Detailed Analysis</h3>
-              <FeedbackViewer 
-                feedback={feedback.find(f => f.personaId === expandedPersona)!} 
-                viewMode="table" 
-              />
-              
-              <FollowUpPanel 
-                feedback={feedback.find(f => f.personaId === expandedPersona)!} 
-                persona={selectedPersona} 
-              />
-            </div>
-          )}
-        </>
       )}
     </div>
   );

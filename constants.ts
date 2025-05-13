@@ -64,4 +64,7 @@ export const ERROR_ACTIONS = {
   FETCH_URL: 'fetch_url_error',
   GENERATE_FEEDBACK: 'generate_feedback_error',
   SIMULATE_FOLLOWUP: 'simulate_followup_error'
-}; 
+};
+
+// Debugging
+export const LOG_RAW_LLM_RESPONSE = process.env.NODE_ENV === 'development'; // Log only in development 

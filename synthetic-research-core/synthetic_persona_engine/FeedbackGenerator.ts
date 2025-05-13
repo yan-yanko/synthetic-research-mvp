@@ -1,4 +1,4 @@
-import { SyntheticInvestor } from './SyntheticInvestor';
+// import { SyntheticInvestor } from '../../../../types/personas';
 import { FeedbackObject, SlideReaction, OverallFeedback } from './FeedbackTypes';
 
 interface ParsedSlide {
@@ -49,7 +49,7 @@ function parsePitchDeckIntoSlides(pitchDeck: string): ParsedSlide[] {
  */
 function generateSlideReaction(
   slide: ParsedSlide, 
-  persona: SyntheticInvestor, 
+  persona: any, 
   elevatorPitch?: string
 ): SlideReaction {
   // Analysis would typically be performed by an LLM in a real implementation
@@ -132,7 +132,7 @@ function generateSlideReaction(
  */
 function generateOverallFeedback(
   slideReactions: SlideReaction[],
-  persona: SyntheticInvestor,
+  persona: any,
   elevatorPitch?: string
 ): OverallFeedback {
   // Count sentiment distribution
@@ -226,7 +226,7 @@ function generateOverallFeedback(
 export function generateFeedbackFromPersona(
   pitchDeck: string, 
   elevatorPitch: string, 
-  persona: SyntheticInvestor
+  persona: any
 ): FeedbackObject {
   const startTime = Date.now();
   

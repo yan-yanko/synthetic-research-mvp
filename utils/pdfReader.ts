@@ -3,53 +3,28 @@
  * Simple utility for extracting text content from PDF files in the browser
  */
 
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+// @ts-ignore
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
+
+GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 /**
  * Extracts text content from a PDF file
  * In a real implementation, you would use a proper PDF library like pdf.js
  * This is a simplified version for MVP purposes
  */
-export async function extractPDFContent(file: File): Promise<{ slides: string[], pitch: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (event) => {
-      if (!event.target?.result) {
-        reject(new Error('Failed to read file'));
-        return;
-      }
-      
-      try {
-        // Get the file content as a string
-        const textContent = event.target.result.toString();
-        
-        // Split into slides based on common page separators or paragraphs
-        // This is a very simplified approach - in a real app you'd use pdf.js
-        const slideTexts = textContent
-          .split(/\n\s*\n|\f|---|\[slide\s*\d+\]/gi)
-          .map(slide => slide.trim())
-          .filter(slide => slide.length > 0);
-        
-        // Extract possible elevator pitch from the first slide
-        // Typically this would be the title slide or executive summary
-        const firstSlideContent = slideTexts[0] || '';
-        const detectedPitch = firstSlideContent.substring(0, 500);
-        
-        resolve({
-          slides: slideTexts,
-          pitch: detectedPitch
-        });
-      } catch (err) {
-        console.error('Error parsing PDF content:', err);
-        reject(new Error('Failed to parse PDF content'));
-      }
-    };
-    
-    reader.onerror = () => {
-      reject(new Error('Error reading file'));
-    };
-    
-    reader.readAsText(file);
-  });
+export async function extractPDFContent(file: File): Promise<{ slides: string[] }> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await getDocument({ data: arrayBuffer }).promise;
+  const slides: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ').trim();
+    slides.push(pageText);
+  }
+  return { slides };
 }
 
 /**
@@ -85,28 +60,10 @@ export async function extractPPTContent(file: File): Promise<{ slides: string[],
 /**
  * Determines the appropriate parser based on file extension and processes the file
  */
-export async function processFileContent(fileOrUrl: File | string): Promise<{ slides: string[], pitch: string }> {
-  if (typeof fileOrUrl === 'string') {
-    // Google Slides URL: call backend
-    const formData = new FormData();
-    formData.append('googleSlidesUrl', fileOrUrl);
-    const response = await fetch('/api/upload/deck', {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to process Google Slides');
-    return { slides: data.slides, pitch: data.pitch };
-  }
-  const file = fileOrUrl;
+export async function processFileContent(file: File): Promise<{ slides: string[] }> {
   const fileType = file.name.split('.').pop()?.toLowerCase();
-  switch (fileType) {
-    case 'pdf':
-      return extractPDFContent(file);
-    case 'ppt':
-    case 'pptx':
-      return extractPPTContent(file);
-    default:
-      throw new Error('Unsupported file type. Please use PDF, PPT, PPTX, or Google Slides.');
+  if (fileType === 'pdf') {
+    return extractPDFContent(file);
   }
+  throw new Error('Only PDF files are supported at this time.');
 } 

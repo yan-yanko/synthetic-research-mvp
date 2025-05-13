@@ -1,4 +1,27 @@
-import { SyntheticInvestor } from '../personas/investorPersonas';
+import { SyntheticInvestor } from '../types/personas';
+
+const personaInstructions = `
+Respond as if you are an experienced venture investor speaking candidly during a partner meeting.
+
+Use authentic investor language, including terms like:
+- TAM/SAM/SOM
+- MRR, ARR, CAC, LTV
+- Unit economics, defensibility, GTM, runway
+
+Prioritize tough love and actionable feedback over compliments. Be critical but fair.
+
+For each slide, respond with:
+1. Immediate reaction (short and direct).
+2. Concerns or red flags using realistic investor language.
+3. Final investment stance: 'Pass', 'Interested – with Concerns', or 'Invest'.
+
+At the end, provide a VC-style memo summary:
+- Consensus view: One sentence summary.
+- Top Concern: What blocks immediate investment.
+- Recommendation: Pass, Defer, or Proceed to Term Sheet Discussion.
+
+Keep responses short, sharp, and impactful. Avoid generic advice. Focus on what would truly prevent a VC from moving forward.
+`;
 
 /**
  * Builds a structured prompt for the LLM based on pitch deck slides, elevator pitch, and investor persona
@@ -9,10 +32,12 @@ import { SyntheticInvestor } from '../personas/investorPersonas';
  */
 export function buildPrompt(slides: string[], pitch: string, persona: SyntheticInvestor): string {
   return `
+${personaInstructions}
+
 You are ${persona.name}, a ${persona.type}-type investor.
 
 Your investment thesis: ${persona.investmentThesis}.
-Your tone: ${persona.tone}. Your traits: ${persona.behavioralTraits.join(', ')}.
+Your quoteStyle: ${persona.quoteStyle}. Your traits: ${persona.behavioralTraits.join(', ')}.
 
 Below is a startup pitch. Respond slide-by-slide with:
 1. Your reactions
@@ -28,52 +53,63 @@ ${slides.map((s, i) => `Slide ${i + 1}: ${s}`).join('\n\n')}
 }
 
 /**
- * Enhanced version of the prompt builder with additional context and structured output format
- * @param slides - Array of slide contents from the pitch deck
- * @param pitch - The elevator pitch text
- * @param persona - The synthetic investor persona to simulate
- * @returns Formatted prompt string for the LLM with structured output instructions
+ * Builds an enhanced prompt with more specific instructions for the LLM
+ * @param deckSlides - Array of slides from the pitch deck
+ * @param elevatorPitch - The elevator pitch text
+ * @param persona - The investor persona to simulate
+ * @returns The generated prompt string asking for JSON output
  */
-export function buildEnhancedPrompt(slides: string[], pitch: string, persona: SyntheticInvestor): string {
-  // Add more detailed instructions for persona behavior based on traits
-  const traitGuidance = getTraitGuidance(persona.behavioralTraits);
-  
-  // Add tone guidance based on persona's tone preference
-  const toneGuidance = getToneGuidance(persona.tone);
-  
+export function buildEnhancedPrompt(
+  deckSlides: string[],
+  elevatorPitch: string,
+  persona: SyntheticInvestor
+): string {
+  const slideContent = deckSlides.map((slide, index) => 
+    `### Slide ${index + 1}\n${slide.substring(0, 1500)}${slide.length > 1500 ? '... (truncated)' : ''}`
+  ).join('\n\n');
+
+  const pitchSection = elevatorPitch ? 
+    `## Elevator Pitch\n${elevatorPitch}\n\n` : '';
+
+  const jsonStructure = `
+{
+  "sentiment": "positive | neutral | negative",
+  "initialImpression": "Your overall first impression.",
+  "slideAnalysis": [
+    { "slideNumber": 1, "feedback": "Your feedback for slide 1." },
+    { "slideNumber": 2, "feedback": "Your feedback for slide 2." },
+    // ... and so on for all slides
+  ],
+  "decision": {
+    "decision": "Investment decision (e.g., WOULD INVEST, WOULD NOT INVEST, NEED MORE INFO)",
+    "confidence": "Confidence level (e.g., HIGH, MEDIUM, LOW)"
+  },
+  "keyTakeaways": [
+    { "type": "strength", "text": "A key strength." },
+    { "type": "concern", "text": "A key concern." },
+    { "type": "question", "text": "A question you would ask." }
+    // ... include multiple takeaways
+  ]
+}
+`;
+
   return `
-You are ${persona.name}, a ${persona.type}-type investor with the following investment thesis:
-"${persona.investmentThesis}"
+You are ${persona.name}, a ${persona.type}-type investor. 
+Your investment thesis is: "${persona.investmentThesis}".
+Your communication style is ${persona.quoteStyle}.
+Your key behavioral traits are: ${persona.behavioralTraits.join(', ')}.
 
-${traitGuidance}
+You are reviewing the following pitch deck${elevatorPitch ? ' and elevator pitch' : ''}.
 
-${toneGuidance}
+${pitchSection}## Pitch Deck Slides
+${slideContent}
 
-You are evaluating a startup pitch. Your task is to provide authentic feedback as if you were really this investor.
+## Your Task
+Provide detailed feedback based *only* on the provided pitch information and your persona. Analyze the pitch deck slide-by-slide and give an overall assessment.
 
-FORMAT YOUR RESPONSE IN THIS EXACT STRUCTURE:
-----------------------------------------------
+**IMPORTANT**: Structure your *entire* response as a single JSON object conforming *exactly* to the following format. Do not include any text outside of the JSON structure.
 
-## Initial Impression
-[Your first impression based on the elevator pitch]
-
-## Slide-by-Slide Analysis
-${slides.map((_, i) => `### Slide ${i + 1}\n[Your reaction to this slide, highlighting strengths or concerns aligned with your investment thesis and traits]`).join('\n\n')}
-
-## Investment Decision
-- Decision: [WOULD INVEST | WOULD NOT INVEST | NEED MORE INFORMATION]
-- Confidence: [HIGH | MEDIUM | LOW]
-- Key Strengths: [List 2-3 key strengths]
-- Key Concerns: [List 2-3 key concerns]
-- Questions I Would Ask: [List 3 follow-up questions]
-
-----------------------------------------------
-
-ELEVATOR PITCH:
-${pitch}
-
-PITCH DECK SLIDES:
-${slides.map((s, i) => `SLIDE ${i + 1}:\n${s}`).join('\n\n')}
+${jsonStructure}
 `;
 }
 
@@ -101,17 +137,17 @@ ${traits.map(trait => `- ${guidanceMap[trait] || `Focus on aspects related to "$
 
 /**
  * Generates tone guidance based on the investor's preferred communication style
- * @param tone - The investor's preferred tone
- * @returns Formatted string with tone-specific guidance
+ * @param quoteStyle - The investor's preferred communication style
+ * @returns Formatted string with style-specific guidance
  */
-function getToneGuidance(tone: 'blunt' | 'polished' | 'intellectual'): string {
-  switch (tone) {
+function getToneGuidance(quoteStyle: 'blunt' | 'polished' | 'visionary'): string {
+  switch (quoteStyle) {
     case 'blunt':
       return 'Use a direct, no-nonsense communication style. Be straightforward in your critique without sugar-coating. Use shorter sentences and practical language. Occasional use of casual expressions is fine if it emphasizes a point.';
     case 'polished':
       return 'Maintain a professional, diplomatic tone throughout your analysis. Even when critical, frame feedback constructively. Use refined language and well-structured sentences. Your communication should reflect the polish expected in high-level business discussions.';
-    case 'intellectual':
-      return 'Approach the analysis with academic rigor and depth. Reference relevant frameworks, research, or theoretical concepts where appropriate. Use precise terminology and sophisticated reasoning. Your analysis should demonstrate deep domain expertise and systematic thinking.';
+    case 'visionary':
+      return 'Approach the analysis with a visionary mindset. Focus on the potential impact and long-term value of the investment. Use inspiring language and future-oriented reasoning. Your analysis should demonstrate deep domain expertise and visionary thinking.';
     default:
       return 'Maintain a balanced, professional tone throughout your analysis.';
   }

@@ -170,4 +170,31 @@ export function extractInitialImpression(response: string): string {
                         response.substring(sectionStart + '## Initial Impression'.length);
   
   return impressionText.trim();
-} 
+}
+
+/**
+ * Types related to processing LLM-generated investor feedback responses.
+ * Assumes the LLM provides a response parsable as JSON conforming to the FeedbackResponseStructure.
+ */
+
+// Types are now primarily defined in ../types/feedback.ts
+// This file can be removed or used for future validation logic if needed.
+
+// Example type (matching expected JSON structure - ensure this aligns with ../types/feedback.ts FeedbackResponse)
+
+export interface FeedbackResponseStructure {
+  sentiment: 'positive' | 'neutral' | 'negative';
+  initialImpression: string;
+  slideAnalysis: { slideNumber: number; feedback: string }[];
+  decision: {
+    decision: string;
+    confidence: string;
+  };
+  keyTakeaways: {
+    type: 'strength' | 'concern' | 'question';
+    text: string;
+  }[];
+}
+
+// Parsing is now done directly in generateInvestorFeedback.ts using JSON.parse
+// Exporting the structure type might still be useful. 

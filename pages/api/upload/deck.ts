@@ -87,7 +87,7 @@ export default async function handler(
         const pitch = slides[0] || '';
         return res.status(200).json({ slides, pitch, source: 'googleSlides' });
       } catch (err) {
-        return res.status(500).json({ error: 'Failed to process Google Slides', details: err.message });
+        return res.status(500).json({ error: 'Failed to process Google Slides', details: err instanceof Error ? err.message : String(err) });
       }
     }
 
@@ -125,7 +125,7 @@ export default async function handler(
           await promisify(fs.unlink)(fileObj.filepath);
           return res.status(200).json({ slides, pitch, source: 'pdf' });
         } catch (err) {
-          return res.status(500).json({ error: 'Failed to process PDF', details: err.message });
+          return res.status(500).json({ error: 'Failed to process PDF', details: err instanceof Error ? err.message : String(err) });
         }
       } else if (originalFilename.toLowerCase().endsWith('.pptx') || originalFilename.toLowerCase().endsWith('.ppt')) {
         // PPTX: use pptx-parser
@@ -138,7 +138,7 @@ export default async function handler(
           await promisify(fs.unlink)(fileObj.filepath);
           return res.status(200).json({ slides, pitch, source: 'pptx' });
         } catch (err) {
-          return res.status(500).json({ error: 'Failed to process PPTX', details: err.message });
+          return res.status(500).json({ error: 'Failed to process PPTX', details: err instanceof Error ? err.message : String(err) });
         }
       }
       

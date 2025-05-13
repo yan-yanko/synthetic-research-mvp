@@ -11,7 +11,7 @@ A modular system for generating synthetic audience research at scale.
 
 ### 2. LLM-Based Response Generator
 - Simulates responses to research questions or ads.
-- Controlled variation ensures realism across tone, sentiment, and verbosity.
+- Controlled variation ensures realism across quoteStyle, sentiment, and verbosity.
 - Fine-tuning hooks for future improvement.
 
 ### 3. Validation and Confidence Layer

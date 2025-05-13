@@ -6,7 +6,7 @@
  */
 
 // Export core types
-export type { SyntheticInvestor } from './SyntheticInvestor';
+// export type { SyntheticInvestor } from './SyntheticInvestor';
 export type { FeedbackObject, SlideReaction, OverallFeedback } from './FeedbackTypes';
 
 // Export main functionality

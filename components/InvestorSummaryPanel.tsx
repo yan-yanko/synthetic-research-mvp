@@ -21,6 +21,11 @@ export function InvestorSummaryPanel({ feedback }: InvestorSummaryPanelProps) {
 
   return (
     <div className="bg-slate-50 rounded-xl p-6 border mt-6 shadow-sm">
+      {summary.topConcerns && summary.topConcerns.length > 0 && (
+        <h2 className="text-xl font-bold text-red-600 mb-4">
+          🔥 Top Concern: {summary.topConcerns[0]}
+        </h2>
+      )}
       <h3 className="text-xl font-semibold mb-3 flex items-center">
         <span className="mr-2">🧠</span> AI Panel Summary
       </h3>
@@ -113,6 +118,23 @@ export function InvestorSummaryPanel({ feedback }: InvestorSummaryPanelProps) {
             <li key={index} className="text-sm text-gray-700">{step}</li>
           ))}
         </ol>
+      </div>
+
+      {/* VC-style memo summary */}
+      <div className="mt-8 bg-white p-4 rounded-lg shadow border-t-4 border-blue-200">
+        <h3 className="text-lg font-bold mb-2 text-blue-900">VC-Style Memo</h3>
+        <div className="mb-2">
+          <span className="font-semibold">Consensus View:</span> {summary.consensusStatement}
+        </div>
+        {summary.topConcerns && summary.topConcerns.length > 0 && (
+          <div className="mb-2">
+            <span className="font-semibold">Top Concern:</span> {summary.topConcerns[0]}
+          </div>
+        )}
+        <div>
+          <span className="font-semibold">Recommendation:</span> {/* Simple logic for recommendation */}
+          {summary.investmentLikelihood >= 80 ? 'Proceed to Term Sheet Discussion' : summary.investmentLikelihood >= 50 ? 'Defer' : 'Pass'}
+        </div>
       </div>
     </div>
   );

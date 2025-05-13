@@ -1,10 +1,10 @@
-import { SyntheticInvestor } from './SyntheticInvestor';
+// import { SyntheticInvestor } from '../../../../types/personas';
 
 /**
  * Library of synthetic investor personas for pitch deck feedback
  */
 export class PersonaLibrary {
-  private static personas: Map<string, SyntheticInvestor> = new Map();
+  private static personas: Map<string, any> = new Map();
   
   /**
    * Initialize the persona library with default personas
@@ -20,7 +20,7 @@ export class PersonaLibrary {
    * Get all available personas
    * @returns Array of all synthetic investor personas
    */
-  public static getAllPersonas(): SyntheticInvestor[] {
+  public static getAllPersonas(): any[] {
     return Array.from(this.personas.values());
   }
   
@@ -29,7 +29,7 @@ export class PersonaLibrary {
    * @param id - The unique ID of the persona
    * @returns The persona if found, undefined otherwise
    */
-  public static getPersonaById(id: string): SyntheticInvestor | undefined {
+  public static getPersonaById(id: string): any | undefined {
     return this.personas.get(id);
   }
   
@@ -38,7 +38,7 @@ export class PersonaLibrary {
    * @param persona - The synthetic investor persona to add
    * @returns The added persona
    */
-  public static addPersona(persona: SyntheticInvestor): SyntheticInvestor {
+  public static addPersona(persona: any): any {
     this.personas.set(persona.id, persona);
     return persona;
   }
@@ -47,7 +47,7 @@ export class PersonaLibrary {
    * Maya - Cautious ex-CFO turned investor, focused on financials
    */
   private static addMaya(): void {
-    const maya: SyntheticInvestor = {
+    const maya: any = {
       id: 'maya-financial-focus',
       name: 'Maya Chen',
       type: 'Series A VC',
@@ -76,7 +76,7 @@ export class PersonaLibrary {
    * Arjun - Ex-founder VC, loves narrative and team
    */
   private static addArjun(): void {
-    const arjun: SyntheticInvestor = {
+    const arjun: any = {
       id: 'arjun-narrative-focus',
       name: 'Arjun Patel',
       type: 'Seed VC',
@@ -105,7 +105,7 @@ export class PersonaLibrary {
    * Chloe - Young angel with social media fluency, skeptical of hype
    */
   private static addChloe(): void {
-    const chloe: SyntheticInvestor = {
+    const chloe: any = {
       id: 'chloe-trend-focus',
       name: 'Chloe Rodriguez',
       type: 'Angel',
