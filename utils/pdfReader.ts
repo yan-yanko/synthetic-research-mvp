@@ -30,3 +30,14 @@ export async function extractPDFContent(file: File): Promise<{ slides: string[] 
   }
   return { slides };
 }
+
+/**
+ * Determines the appropriate parser based on file extension and processes the file
+ */
+export async function processFileContent(file: File): Promise<{ slides: string[] }> {
+  const fileType = file.name.split('.').pop()?.toLowerCase();
+  if (fileType === 'pdf') {
+    return extractPDFContent(file);
+  }
+  throw new Error('Only PDF files are supported at this time.');
+}
