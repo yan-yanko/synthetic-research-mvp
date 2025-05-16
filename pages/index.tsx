@@ -19,6 +19,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Layout } from '@/components/ui/Layout';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -31,37 +32,50 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col justify-center items-center py-16 px-4">
-      <div className="max-w-xl w-full bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center">
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Upload Your Deck → Get Investor Feedback</h1>
-        <p className="text-center text-gray-600 mb-8 text-lg">
-          Instantly simulate honest, structured feedback from a panel of synthetic VCs. No signup required.
-        </p>
-        <Link href="/deck-upload" legacyBehavior>
-          <a className="w-full mb-6 inline-block text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-lg shadow transition">Upload Your Pitch Deck</a>
-        </Link>
-        <form onSubmit={handleEmailSubmit} className="w-full flex flex-col items-center">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Get early access updates:</label>
-          <div className="flex w-full">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="Your email"
-              className="flex-1 p-3 border border-gray-300 rounded-l-md text-sm focus:outline-none"
-              disabled={submitted}
-            />
-            <button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-r-md text-sm font-semibold disabled:opacity-60"
-              disabled={submitted}
+    <Layout>
+      <div className="min-h-[calc(100vh-150px)] flex flex-col justify-center items-center py-12 px-4 text-center">
+        <div className="max-w-2xl w-full bg-card border border-border rounded-2xl shadow-xl p-8 md:p-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-textPrimary">
+            Upload Your Deck → Get Investor Feedback
+          </h1>
+          <p className="text-textSecondary mb-8 text-lg md:text-xl">
+            Instantly simulate honest, structured feedback from a panel of synthetic VCs. No signup required.
+          </p>
+          <Link href="/deck-upload" legacyBehavior>
+            <a 
+              className="w-full max-w-md mb-8 inline-block bg-primary hover:bg-primary/80 text-white font-semibold py-3 px-6 rounded-lg text-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1"
             >
-              {submitted ? 'Thank you!' : 'Notify Me'}
-            </button>
-          </div>
-        </form>
+              Upload Your Pitch Deck
+            </a>
+          </Link>
+          <form onSubmit={handleEmailSubmit} className="w-full max-w-md mx-auto">
+            <label className="block text-sm font-medium text-textSecondary mb-2">
+              Get early access updates:
+            </label>
+            <div className="flex">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="Your email"
+                className="flex-1 p-3 border border-border bg-background text-textPrimary rounded-l-md text-sm focus:ring-primary focus:border-primary focus:outline-none disabled:opacity-50"
+                disabled={submitted}
+              />
+              <button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-r-md text-sm font-semibold disabled:opacity-60 transition-colors duration-300"
+                disabled={submitted}
+              >
+                {submitted ? 'Thank you!' : 'Notify Me'}
+              </button>
+            </div>
+            {submitted && (
+              <p className="text-green-500 mt-3 text-sm">Thanks for signing up! We'll keep you posted.</p>
+            )}
+          </form>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 } 
