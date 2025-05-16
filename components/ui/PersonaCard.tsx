@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from "@/components/ui/badge"; // Assuming shadcn/ui setup for badge
+import { Badge } from "./badge"; // Changed to relative import
 import { cn } from "@/lib/utils"; // Assuming shadcn/ui setup for cn
 import { Check } from "lucide-react";
 import { SyntheticInvestor } from '@/types/personas'; // Adjust path if necessary
