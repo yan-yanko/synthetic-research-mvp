@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, type BadgeProps } from "./badge"; // Explicitly import BadgeProps
+import { Badge, badgeVariants, type BadgeProps } from "./badge"; // Import badgeVariants
 import { cn } from "@/lib/utils"; // Assuming shadcn/ui setup for cn
 import { Check } from "lucide-react";
 import { SyntheticInvestor } from '@/types/personas'; // Adjust path if necessary
@@ -27,7 +27,7 @@ export function PersonaCard({ persona, selected, onSelect }: PersonaCardProps) {
       <p className="text-textSecondary">{persona.investmentThesis}</p>
       {persona.behaviorProfile.riskAppetite && (
         <div className="mt-3">
-          <Badge variant="secondary">{persona.behaviorProfile.riskAppetite}</Badge>
+          <Badge className={badgeVariants({ variant: "secondary" })}>{persona.behaviorProfile.riskAppetite}</Badge>
         </div>
       )}
     </div>
