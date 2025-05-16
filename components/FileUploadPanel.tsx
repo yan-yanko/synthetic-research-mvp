@@ -3,7 +3,8 @@ import { processFileContent } from '../utils/pdfReader';
 import { generateInvestorFeedback } from '../generateInvestorFeedback';
 import { InvestorPanel } from './InvestorPanel';
 import { InvestorSummaryPanel } from './InvestorSummaryPanel';
-import { LoadingIndicator } from './LoadingIndicator';
+import { PeachLoader } from '@/components/ui/PeachLoader';
+import { toast } from 'sonner';
 // @ts-ignore
 const html2pdf: any = require('html2pdf.js');
 
@@ -24,19 +25,24 @@ export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
   const handleFileChange = useCallback(async (file: File | null) => {
     if (!file) {
       setError('No file selected');
+      toast.error('No file selected');
       setUploadedFile(null);
       return;
     }
     setUploadedFile(file);
     setError('');
     setLoading(true);
+    const toastId = toast.loading(`Processing ${file.name}...`);
     try {
       // Only process the file here
       const { slides } = await processFileContent(file);
       // Pass slides and file info to parent
       onUploadComplete(slides, file);
+      toast.success(`${file.name} processed successfully.`, { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process the uploaded file');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process the uploaded file';
+      setError(errorMessage);
+      toast.error(errorMessage, { id: toastId });
       // Clear uploaded file state on error
       setUploadedFile(null);
       onUploadComplete([], null); // Notify parent of failure
@@ -89,7 +95,7 @@ export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
       </div>
       {loading && (
         <div className="mt-6 flex justify-center">
-          <LoadingIndicator message="Processing PDF..." size="large" />
+          <PeachLoader message="Processing PDF..." />
         </div>
       )}
       {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>}

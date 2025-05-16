@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { generateInvestorFeedback } from '../generateInvestorFeedback';
 import { investorPersonas } from '../personas/investorPersonas';
 import FeedbackViewer from './FeedbackViewer';
 import { InvestorSummaryPanel } from './InvestorSummaryPanel';
 import { FollowUpPanel } from './FollowUpPanel';
 import { SlideReviewPanel } from './SlideReviewPanel';
-import { LoadingIndicator } from './LoadingIndicator';
-import { FeedbackResponse } from '../types/feedback';
+import { PeachLoader } from '@/components/ui/PeachLoader';
+import { FeedbackResponse, FeedbackError } from '../types/feedback';
 import { SyntheticInvestor } from '../types/personas';
+import { Toaster, toast } from 'sonner';
 
 // @ts-ignore - Add html2pdf import if not present
 const html2pdf: any = require('html2pdf.js');
@@ -18,11 +20,16 @@ interface InvestorPanelProps {
   uploadedFileName?: string;
 }
 
+// Helper type guard
+function isFeedbackResponse(item: FeedbackResponse | FeedbackError): item is FeedbackResponse {
+  return !(item as FeedbackError).error;
+}
+
 /**
  * Main component for investor feedback analysis
  */
 export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFileName }: InvestorPanelProps) {
-  const [feedback, setFeedback] = useState<FeedbackResponse[]>([]);
+  const [feedback, setFeedback] = useState<(FeedbackResponse | FeedbackError)[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [expandedPersona, setExpandedPersona] = useState<string | null>(null);
@@ -42,18 +49,22 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
   const generateFeedback = async () => {
     if (!deckSlides.length && !elevatorPitch.trim()) {
       setError("Pitch deck slides or elevator pitch text is required.");
+      toast.error("Pitch deck slides or elevator pitch text is required.");
       return;
     }
 
     setLoading(true);
     setError("");
+    const toastId = toast.loading("Generating investor feedback...");
     
     try {
       const res = await generateInvestorFeedback(deckSlides, elevatorPitch);
       setFeedback(res);
+      toast.success("Feedback generated successfully!", { id: toastId });
     } catch (error) {
       console.error('Error generating investor feedback:', error);
       setError('Failed to generate investor feedback. Please try again.');
+      toast.error('Failed to generate investor feedback. Please try again.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -100,10 +111,28 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
 
   const handleExportPDF = () => {
     if (feedbackExportRef.current) {
+      const exportInProgressToastId = toast.loading('Generating PDF, please wait...');
       const fileName = uploadedFileName 
         ? `investor-feedback-${uploadedFileName.replace(/\.pdf$/i, '')}.pdf` 
         : 'investor-feedback.pdf';
-      html2pdf().from(feedbackExportRef.current).set({ margin: 0.5, filename: fileName, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).save();
+      
+      html2pdf()
+        .from(feedbackExportRef.current)
+        .set({
+          margin: 0.5,
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        })
+        .save()
+        .then(() => {
+          toast.success(`Successfully exported to ${fileName}`, { id: exportInProgressToastId });
+        })
+        .catch((err: any) => {
+          console.error("Error exporting PDF:", err);
+          toast.error('Failed to export PDF. Please try again.', { id: exportInProgressToastId });
+        });
     }
   };
 
@@ -144,6 +173,11 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
     </div>
   );
 
+  // Memoize successfully fetched feedback responses for display
+  const successfulFeedback = useMemo(() => {
+    return feedback.filter(isFeedbackResponse);
+  }, [feedback]);
+
   const renderSummaryTable = () => (
     <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
       <table className="w-full text-sm text-left text-gray-500">
@@ -157,7 +191,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
           </tr>
         </thead>
         <tbody>
-          {feedback.map((f) => {
+          {successfulFeedback.map((f: FeedbackResponse) => {
             const topConcern = f.keyTakeaways.find(item => item.type === 'concern');
             return (
               <tr key={f.personaId} className="bg-white border-b hover:bg-gray-50">
@@ -191,7 +225,7 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
 
   const renderCardView = () => (
     <div className="space-y-6">
-      {feedback.map((f) => (
+      {successfulFeedback.map((f: FeedbackResponse) => (
         <div key={f.personaId} className="border rounded-xl overflow-hidden shadow bg-white">
           <div className="p-4 border-b bg-gray-50">
             <div className="flex justify-between items-center">
@@ -265,11 +299,11 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
         type="button"
         onClick={generateFeedback} 
         className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded w-full sm:w-auto"
-        disabled={loading} 
+        disabled={loading && feedback.length > 0}
       >
-        {loading ? 'Generating...' : 'Regenerate Feedback'}
+        {loading && feedback.length === 0 ? 'Generating Initial Feedback...' : (loading ? 'Regenerating...' : 'Regenerate Feedback')}
       </button>
-      {feedback.length > 0 && !loading && (
+      {successfulFeedback.length > 0 && !loading && (
         <button
           type="button"
           onClick={handleExportPDF}
@@ -283,33 +317,36 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
 
   return (
     <div className="container mx-auto py-6">
+      <Toaster richColors position="top-right" />
       <h2 className="text-2xl font-bold text-center mb-6">Investor Feedback Analysis</h2>
       
       {error && <div className="my-4 p-3 bg-red-100 text-red-700 rounded border border-red-300">Error: {error}</div>}
 
-      <div ref={feedbackExportRef}>
-        {feedback.length > 0 && (
-          <>
-            {showSummary && <InvestorSummaryPanel feedback={feedback} />}
+      <AnimatePresence mode="wait">
+        {loading && feedback.length === 0 ? (
+          <motion.div key="loader" className="mt-8">
+            <PeachLoader message="Simulating investor reactions... This might take a minute or two..." />
+          </motion.div>
+        ) : successfulFeedback.length > 0 ? (
+          <motion.div 
+            key="feedbackContent"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            ref={feedbackExportRef}
+          >
+            {showSummary && <InvestorSummaryPanel feedback={successfulFeedback} />}
             {renderViewControls()}
             {viewMode === 'table' ? renderSummaryTable() : renderCardView()}
-          </>
-        )}
-      </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       
-      {(feedback.length > 0 || deckSlides.length > 0 || elevatorPitch.trim()) && 
+      {(!loading || feedback.length > 0 || deckSlides.length > 0 || elevatorPitch.trim()) && 
         renderActionAndExportButtons() 
       }
 
-      {loading && feedback.length === 0 && (
-        <div className="mt-8">
-            <LoadingIndicator 
-                message="Simulating investor reactions..." 
-                subMessage="This might take a minute or two..." 
-                size="large"
-            />
-        </div>
-      )}
     </div>
   );
 } 

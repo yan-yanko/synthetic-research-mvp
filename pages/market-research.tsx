@@ -19,6 +19,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { PeachLoader } from '@/components/ui/PeachLoader';
 // PDF functionality is completely disabled for Vercel deployment
 
 /**
@@ -315,63 +316,31 @@ export default function MarketResearch() {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold mb-4">Synthetic Research Prototype</h1>
-      
-      {/* Navigation Menu */}
-      <div className="mb-8 bg-gray-100 p-4 rounded-lg">
-        <h2 className="text-lg font-semibold mb-2">Available Tools</h2>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link 
-            href="/market-research" 
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center"
-          >
-            Marketing Research
-          </Link>
-          <Link 
-            href="/deck-upload" 
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-center"
-          >
-            Pitch Deck Analysis
-          </Link>
-          <Link 
-            href="/pitch-test" 
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-center"
-          >
-            Investor Pitch Simulator
-          </Link>
-        </div>
-      </div>
-      
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Input Type
-        </label>
-        <div className="flex space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="inputType"
-              value="text"
-              checked={inputType === 'text'}
-              onChange={() => setInputType('text')}
-            />
-            <span className="ml-2">Text Input</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="inputType"
-              value="url"
-              checked={inputType === 'url'}
-              onChange={() => setInputType('url')}
-            />
-            <span className="ml-2">URL Input</span>
-          </label>
-        </div>
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold">Synthetic Research Tool</h1>
+        <p className="text-gray-500">Get instant feedback from AI personas</p>
+        <Link href="/" className="text-blue-500 hover:underline mt-2 inline-block">
+          ← Back to Dashboard
+        </Link>
+      </header>
+
+      {/* Input Type Toggle */}
+      <div className="mb-4 flex justify-center">
+        <button
+          onClick={() => setInputType('text')}
+          className={`px-4 py-2 rounded-l-md ${inputType === 'text' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Text Input
+        </button>
+        <button
+          onClick={() => setInputType('url')}
+          className={`px-4 py-2 rounded-r-md ${inputType === 'url' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          URL Input
+        </button>
       </div>
 
+      {/* Input Area */}
       {inputType === 'url' ? (
         <div className="mb-4">
           <input
@@ -405,64 +374,42 @@ export default function MarketResearch() {
         disabled={loading || !input}
         className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        {loading ? 'Running Research...' : 'Run Research'}
+        Run Research
       </button>
+
+      {loading && (
+        <div className="mt-6">
+          <PeachLoader message="Running research, please wait..." />
+        </div>
+      )}
 
       {error && (
         <div className="mt-2 text-red-600">{error}</div>
       )}
 
-      {Object.entries(responses).length > 0 && (
-        <div className="mt-6 space-y-4">
-          <div ref={reportRef} className="hidden">
-            <h1 className="text-2xl font-bold mb-6 text-center">Synthetic Research Report</h1>
-            
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Research Input</h2>
-              <p className="text-gray-700">
-                {inputType === 'url' ? `URL: ${input}` : input}
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">Persona Responses</h2>
-              {personas.map((persona) => (
-                <div key={persona.id} className="mb-4">
-                  <h3 className="font-semibold mb-2">{persona.name}</h3>
-                  <p className="text-gray-700">{responses[persona.id]}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">Key Takeaways</h2>
-              <p className="text-gray-700">{summary}</p>
-            </div>
-          </div>
-
-          <h2 className="text-xl font-semibold mb-4">Individual Responses</h2>
+      {/* Results Area */}
+      {Object.keys(responses).length > 0 && !loading && (
+        <div ref={reportRef} className="mt-8 p-4 border rounded">
+          <h2 className="text-xl font-semibold mb-4">Persona Responses</h2>
           {personas.map((persona) => (
-            <div key={persona.id} className="border p-4 rounded bg-white shadow">
+            <div key={persona.id} className="mb-4">
               <h3 className="font-semibold mb-2">{persona.name}</h3>
-              <p>{responses[persona.id]}</p>
+              <p className="text-gray-700">{responses[persona.id]}</p>
             </div>
           ))}
 
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Key Takeaways</h2>
-            <div className="border p-4 rounded bg-white shadow">
-              {summaryLoading ? (
-                <div className="text-gray-500 italic">Summarizing insights...</div>
-              ) : summaryError ? (
-                <div className="text-red-500">{summaryError}</div>
-              ) : (
-                <p className="whitespace-pre-line">{summary}</p>
-              )}
-            </div>
+          {/* Summary Section */}
+          <div className="mt-6 pt-4 border-t">
+            <h3 className="text-lg font-semibold mb-2">Overall Summary</h3>
+            {summaryLoading && <PeachLoader message="Generating summary..." />}
+            {summaryError && <p className="text-red-500">{summaryError}</p>}
+            {summary && !summaryError && (
+              <p className="text-gray-700 whitespace-pre-line">{summary}</p>
+            )}
           </div>
-
-          {/* PDF export button */}
-          <div className="mt-6">
+          
+          {/* PDF Export Button - Disabled */}
+          <div className="mt-6 text-center">
             <button
               onClick={generatePDF}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -470,47 +417,48 @@ export default function MarketResearch() {
               Download PDF Report
             </button>
           </div>
+        </div>
+      )}
 
-          {summary && !summaryLoading && !summaryError && (
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Rate This Insight</h2>
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => handleFeedback('useful')}
-                  className={`px-4 py-2 rounded ${
-                    feedback === 'useful'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-green-100 text-green-800 hover:bg-green-200'
-                  }`}
-                >
-                  Useful
-                </button>
-                <button
-                  onClick={() => handleFeedback('notSure')}
-                  className={`px-4 py-2 rounded ${
-                    feedback === 'notSure'
-                      ? 'bg-yellow-600 text-white'
-                      : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                  }`}
-                >
-                  Not Sure
-                </button>
-                <button
-                  onClick={() => handleFeedback('offTarget')}
-                  className={`px-4 py-2 rounded ${
-                    feedback === 'offTarget'
-                      ? 'bg-red-600 text-white'
-                      : 'bg-red-100 text-red-800 hover:bg-red-200'
-                  }`}
-                >
-                  Off-Target
-                </button>
-              </div>
-              {showThankYou && (
-                <div className="mt-4 text-green-600">
-                  Thank you for your feedback!
-                </div>
-              )}
+      {/* User Feedback Section */}
+      {!loading && Object.keys(responses).length > 0 && (
+        <div className="mt-8 p-4 border rounded bg-gray-50">
+          <h3 className="text-lg font-semibold mb-3">Was this research useful?</h3>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => handleFeedback('useful')}
+              className={`px-4 py-2 rounded ${
+                feedback === 'useful'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-green-100 text-green-800 hover:bg-green-200'
+              }`}
+            >
+              Useful
+            </button>
+            <button
+              onClick={() => handleFeedback('notSure')}
+              className={`px-4 py-2 rounded ${
+                feedback === 'notSure'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+              }`}
+            >
+              Not Sure
+            </button>
+            <button
+              onClick={() => handleFeedback('offTarget')}
+              className={`px-4 py-2 rounded ${
+                feedback === 'offTarget'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-red-100 text-red-800 hover:bg-red-200'
+              }`}
+            >
+              Off-Target
+            </button>
+          </div>
+          {showThankYou && (
+            <div className="mt-4 text-green-600">
+              Thank you for your feedback!
             </div>
           )}
         </div>

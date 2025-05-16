@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { simulateFollowUp } from '../utils/simulateFollowUp';
 import { FeedbackResponse, FollowUpResponse } from '../types/feedback';
 import { SyntheticInvestor } from '../types/personas';
-import { LoadingIndicator } from './LoadingIndicator';
+import { PeachLoader } from '@/components/ui/PeachLoader';
+import { toast } from 'sonner';
 
 interface FollowUpPanelProps {
   feedback: FeedbackResponse;
@@ -23,11 +24,13 @@ export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
   const handleFollowUp = async () => {
     if (!followUpContext.trim()) {
       setError('Please enter your follow-up explanation first');
+      toast.error('Please enter your follow-up explanation first');
       return;
     }
     
     setLoading(true);
     setError('');
+    const toastId = toast.loading("Simulating follow-up response...");
     
     try {
       const response = await simulateFollowUp(
@@ -37,9 +40,11 @@ export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
       );
       
       setFollowUpResponse(response);
+      toast.success("Follow-up response generated.", { id: toastId });
     } catch (err) {
       console.error('Error simulating follow-up:', err);
       setError('Failed to generate follow-up response');
+      toast.error('Failed to generate follow-up response. Please try again.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -157,9 +162,8 @@ export function FollowUpPanel({ feedback, persona }: FollowUpPanelProps) {
       </div>
       
       {loading && (
-        <LoadingIndicator 
+        <PeachLoader 
           message="Simulating investor response..." 
-          size="small" 
         />
       )}
       

@@ -108,4 +108,13 @@ export interface FollowUpResponse {
   personaName: string;
   updatedResponse: string;
   updatedSentiment: 'improved' | 'unchanged' | 'worsened';
+}
+
+/**
+ * Represents an error state for a persona's feedback generation.
+ */
+export interface FeedbackError {
+  personaId: string;
+  personaName: string;
+  error: string;
 } 

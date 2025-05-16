@@ -23,6 +23,7 @@ export interface SyntheticInvestor {
   behavioralTraits: string[];
   quoteStyle: CommunicationStyle;
   publicDataAnchors?: string[]; // e.g., ['a16z blog', 'Twitter', 'TechCrunch', 'Reddit']
+  behaviorProfile: BehaviorProfile;
 }
 
 /**
@@ -32,4 +33,12 @@ export interface InvestorResponse {
   role: string;
   background: string;
   feedback: string;
+}
+
+export interface BehaviorProfile {
+  riskTolerance: number; // 0.0 to 1.0
+  temperature: number; // 0.0 to 2.0
+  industryBias: string[]; // Array of industry names, can be empty
+  verbosityPreference?: 'concise' | 'default' | 'verbose';
+  riskAppetite?: 'Low' | 'Medium' | 'High';
 } 
