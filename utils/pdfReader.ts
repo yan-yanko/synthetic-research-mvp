@@ -36,5 +36,3 @@ export async function processFileContent(file: File): Promise<{ slides: string[]
   }
   throw new Error('Only PDF files are supported at this time.');
 }
-
-export { processFileContent };
