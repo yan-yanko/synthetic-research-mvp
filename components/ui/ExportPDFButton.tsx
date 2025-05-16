@@ -1,5 +1,5 @@
 import React from 'react';
-import html2pdf from "html2pdf.js";
+// import html2pdf from "html2pdf.js"; // REMOVE THIS LINE
 import { useToast } from "@/components/ui/ToastContext"; // Corrected import path
 
 export function ExportPDFButton({ getElementToExport, fileNamePrefix = "Export" }: {
@@ -18,6 +18,9 @@ export function ExportPDFButton({ getElementToExport, fileNamePrefix = "Export" 
     addToast("📄 Generating PDF...", "info"); // Info toast for initiation
 
     try {
+      // Dynamically import html2pdf.js
+      const html2pdf = (await import('html2pdf.js')).default;
+
       const fileName = `${fileNamePrefix}_${new Date().toISOString().split('T')[0]}.pdf`;
       await html2pdf().set({
         margin: 0.5, // Adjusted margin from 1 to 0.5 to match InvestorPanel

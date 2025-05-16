@@ -6,7 +6,7 @@ import { InvestorSummaryPanel } from './InvestorSummaryPanel';
 import { PeachLoader } from '@/components/ui/PeachLoader';
 import { toast } from 'sonner';
 // @ts-ignore
-const html2pdf: any = require('html2pdf.js');
+// const html2pdf: any = require('html2pdf.js'); // REMOVE THIS LINE
 
 interface FileUploadPanelProps {
   onUploadComplete: (slides: string[], file: File | null) => void;
@@ -51,9 +51,17 @@ export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
     }
   }, [onUploadComplete]);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => { // Make async
     if (feedbackRef.current) {
-      html2pdf().from(feedbackRef.current).save('investor-feedback.pdf');
+      try {
+        // Dynamically import html2pdf.js
+        const html2pdf = (await import('html2pdf.js')).default;
+        await html2pdf().from(feedbackRef.current).save('investor-feedback.pdf');
+        // Consider adding toast notifications here if this export is used
+      } catch (err) {
+        console.error("Error exporting PDF from FileUploadPanel:", err);
+        // Consider adding toast error notification here
+      }
     }
   };
 

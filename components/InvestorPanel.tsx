@@ -12,7 +12,7 @@ import { SyntheticInvestor } from '../types/personas';
 import { Toaster, toast } from 'sonner';
 
 // @ts-ignore - Add html2pdf import if not present
-const html2pdf: any = require('html2pdf.js');
+// const html2pdf: any = require('html2pdf.js'); // REMOVE THIS LINE
 
 interface InvestorPanelProps {
   deckSlides?: string[];
@@ -109,30 +109,33 @@ export function InvestorPanel({ deckSlides = [], elevatorPitch = "", uploadedFil
     return <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>{label}</span>;
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (feedbackExportRef.current) {
       const exportInProgressToastId = toast.loading('Generating PDF, please wait...');
       const fileName = uploadedFileName 
         ? `investor-feedback-${uploadedFileName.replace(/\.pdf$/i, '')}.pdf` 
         : 'investor-feedback.pdf';
       
-      html2pdf()
-        .from(feedbackExportRef.current)
-        .set({
-          margin: 0.5,
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        })
-        .save()
-        .then(() => {
-          toast.success(`Successfully exported to ${fileName}`, { id: exportInProgressToastId });
-        })
-        .catch((err: any) => {
-          console.error("Error exporting PDF:", err);
-          toast.error('Failed to export PDF. Please try again.', { id: exportInProgressToastId });
-        });
+      try {
+        // Dynamically import html2pdf.js
+        const html2pdf = (await import('html2pdf.js')).default;
+
+        await html2pdf()
+          .from(feedbackExportRef.current)
+          .set({
+            margin: 0.5,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          })
+          .save();
+        
+        toast.success(`Successfully exported to ${fileName}`, { id: exportInProgressToastId });
+      } catch (err: any) {
+        console.error("Error exporting PDF:", err);
+        toast.error('Failed to export PDF. Please try again.', { id: exportInProgressToastId });
+      }
     }
   };
 
