@@ -5,6 +5,9 @@ import { llmClient } from './server/llmClient';
 import { sanitizeInput } from './utils/sanitize';
 import { FeedbackResponse, FeedbackError } from './types/feedback';
 import { LOG_RAW_LLM_RESPONSE } from './constants';
+import { OpenAI } from 'openai';
+
+console.log('[generateInvestorFeedback] Module loading...');
 
 /**
  * Generates investor feedback from all available personas for a pitch deck
