@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
-import { PersonaCard } from "@/components/ui/PersonaCardTemp";
+import { PersonaCard } from "@/components/ui/PersonaCard";
 import { Layout } from "@/components/ui/Layout";
 import { investorPersonas } from "@/personas/investorPersonas";
 import { SyntheticInvestor } from '@/types/personas';
