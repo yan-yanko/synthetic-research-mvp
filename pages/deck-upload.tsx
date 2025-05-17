@@ -1,31 +1,113 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileUploadPanel } from '../components/FileUploadPanel';
-import { InvestorPanel } from '../components/InvestorPanel';
 import { Layout } from '@/components/ui/Layout';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { DeckProcessingScreen } from '../components/DeckProcessingScreen';
+import { PitchDetailsScreen } from '../components/PitchDetailsScreen';
+import { AnalysisSetupScreen } from '../components/AnalysisSetupScreen';
+import { FeedbackDisplayScreen } from '../components/FeedbackDisplayScreen';
+
+// Define types for the flow steps and collected data
+type FlowStep = 'upload' | 'processing' | 'details' | 'analysisSetup' | 'feedbackDisplay';
+
+// Define a type for pitch details
+export interface PitchDetails {
+  industry: string;
+  fundingStage: string;
+  seekingAmount: string; // Keep as string for input, parse later if needed
+  primaryRegion: string;
+  executiveSummary: string;
+  elevatorPitch: string; // Added for collection in PitchDetailsScreen
+}
+
+// Define a type for analysis setup
+export interface AnalysisSetup {
+  selectedPersonas: string[];
+  selectedFeedbackTypes: string[];
+}
+
+// Define a type for the API response data
+export interface InvestorFeedbackResponse {
+  emailResponses: string;
+  meetingNotes: {
+    strengths: string;
+    concerns: string;
+  };
+  slideFeedback: Array<{ slide: string; feedback: string }>;
+  consensusReport: {
+    likelihoodToInvest: string;
+    overallFeedback: string;
+  };
+}
 
 export default function DeckUploaderPage() {
+  const [currentFlowStep, setCurrentFlowStep] = useState<FlowStep>('upload');
+
+  // Data from FileUploadPanel
   const [deckBase64Content, setDeckBase64Content] = useState<string | null>(null);
   const [originalFileName, setOriginalFileName] = useState<string | null>(null);
-  const [isDeckProcessed, setIsDeckProcessed] = useState(false);
-  const [elevatorPitch, setElevatorPitch] = useState<string>("");
-  const [showInvestorPanel, setShowInvestorPanel] = useState(false);
+  
+  // Data from PitchDetailsScreen
+  const [pitchDetails, setPitchDetails] = useState<PitchDetails | null>(null);
 
-  const handleDeckProcessed = (base64: string | null, fileName: string | null) => {
+  // Data from AnalysisSetupScreen
+  const [analysisSetup, setAnalysisSetup] = useState<AnalysisSetup | null>(null);
+  const [apiResponseData, setApiResponseData] = useState<InvestorFeedbackResponse | null>(null); // State for API response
+
+  const handleDeckProcessedInPanel = (base64: string | null, fileName: string | null) => {
     setDeckBase64Content(base64);
     setOriginalFileName(fileName);
-    setIsDeckProcessed(!!base64 && !!fileName);
-    if (!base64) {
-        setShowInvestorPanel(false);
+    if (base64 && fileName) {
+      setCurrentFlowStep('processing');
+    } else {
+      setCurrentFlowStep('upload');
     }
   };
 
-  const handleGenerateFeedback = () => {
-    if (isDeckProcessed && deckBase64Content) {
-      setShowInvestorPanel(true);
-    } else {
-      alert("Please upload and process a pitch deck first.");
+  const handleProcessingComplete = () => {
+    setCurrentFlowStep('details');
+  };
+
+  const handlePitchDetailsComplete = (details: PitchDetails) => {
+    setPitchDetails(details);
+    setCurrentFlowStep('analysisSetup');
+  };
+
+  const handleAnalysisSetupComplete = (setup: AnalysisSetup, responseData: InvestorFeedbackResponse | null) => {
+    setAnalysisSetup(setup);
+    setApiResponseData(responseData);
+    setCurrentFlowStep('feedbackDisplay');
+  };
+
+  // Render logic based on currentFlowStep
+  const renderCurrentStep = () => {
+    switch (currentFlowStep) {
+      case 'upload':
+        return <FileUploadPanel onUploadComplete={handleDeckProcessedInPanel} />;
+      case 'processing':
+        return <DeckProcessingScreen onProcessingComplete={handleProcessingComplete} />;
+      case 'details':
+        return <PitchDetailsScreen onDetailsComplete={handlePitchDetailsComplete} />;
+      case 'analysisSetup':
+        return <AnalysisSetupScreen 
+          onSetupComplete={handleAnalysisSetupComplete} 
+          pitchFileName={originalFileName || "Unknown Deck"} 
+          deckBase64={deckBase64Content}
+          currentPitchDetails={pitchDetails}
+        />;
+      case 'feedbackDisplay':
+        if (!pitchDetails || !analysisSetup || !deckBase64Content /* Removed check for apiResponseData here, FeedbackScreen will use mock if null */) {
+          setCurrentFlowStep('upload');
+          return <p>Error: Missing critical data for feedback display. Resetting...</p>;
+        }
+        return (
+          <FeedbackDisplayScreen 
+            deckInfo={{...pitchDetails, originalFileName: originalFileName || "Unknown Deck"}}
+            analysisSettings={analysisSetup}
+            apiResponseData={apiResponseData} // Pass API response data
+          />
+        );
+      default:
+        return <p>Invalid flow step.</p>;
     }
   };
 
@@ -34,42 +116,9 @@ export default function DeckUploaderPage() {
       <div className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-2 text-textPrimary">Get Feedback on Your Startup Pitch</h1>
         <p className="mb-6 text-textSecondary">
-          Upload your pitch deck, provide an elevator pitch, and we'll simulate what real investors might say.
+          Follow the steps to upload your deck and receive simulated investor feedback.
         </p>
-
-        {!showInvestorPanel ? (
-          <>
-            <FileUploadPanel onUploadComplete={handleDeckProcessed} />
-            
-            <div className="mt-6 mb-6 p-6 border border-gray-200 rounded-xl bg-white shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">2. Provide Your Elevator Pitch</h2>
-              <Textarea
-                placeholder="Enter your elevator pitch here (max 500 characters)..."
-                value={elevatorPitch}
-                onChange={(e) => setElevatorPitch(e.target.value)}
-                maxLength={500}
-                className="min-h-[100px] text-base"
-              />
-              <p className="text-xs text-gray-500 mt-1">{elevatorPitch.length}/500 characters</p>
-            </div>
-
-            {isDeckProcessed && deckBase64Content && (
-                 <Button 
-                    onClick={handleGenerateFeedback} 
-                    className="w-full py-3 text-lg font-semibold bg-green-600 hover:bg-green-700"
-                    disabled={!elevatorPitch.trim()}
-                >
-                    Generate Investor Feedback
-                </Button>
-            )}
-          </>
-        ) : (
-          <InvestorPanel 
-            deckBase64Content={deckBase64Content!}
-            elevatorPitch={elevatorPitch}
-            originalFileName={originalFileName || undefined}
-          />
-        )}
+        {renderCurrentStep()}
       </div>
     </Layout>
   );
