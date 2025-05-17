@@ -145,21 +145,30 @@ export interface MockSlideFeedback {
   slide: string;
   feedback: string;
 }
+*/
 
+// Updated mockData to align with the new InvestorFeedbackResponse structure
 export const mockData: InvestorFeedbackResponse = {
-  emailResponses: "Thank you for sharing your pitch. At this time, we believe you need more traction before we consider investing. Looking forward to future updates.",
-  meetingNotes: {
-    strengths: "Strong market opportunity, experienced team, clear value proposition.",
-    concerns: "Limited customer traction, competitive market, unclear monetization strategy.",
-  },
-  slideFeedback: [
-    { slide: "Slide 1 (Title Slide)", feedback: "Clear and professional." },
-    { slide: "Slide 2 (Problem)", feedback: "Problem is not quantified enough." },
-    { slide: "Slide 3 (Solution)", feedback: "Strong visual, could benefit from a clearer value proposition." },
+  personaFeedbacks: [
+    {
+      persona: "Angel Investor (Mock)",
+      wouldTakeMeeting: "No",
+      strengths: ["Mock strength 1: Interesting concept"],
+      concerns: ["Mock concern 1: Market size unclear", "Mock concern 2: Needs more validation"],
+      emotionalTriggers: ["Curiosity"],
+      verdict: "Pass"
+    },
+    {
+      persona: "Analytical VC (Mock)",
+      wouldTakeMeeting: "No",
+      strengths: ["Mock strength 1: Technically sound (assumed)"],
+      concerns: ["Mock concern 1: No data-driven proof shown", "Mock concern 2: Financial projections missing"],
+      emotionalTriggers: ["Skepticism"],
+      verdict: "Pass"
+    }
   ],
   consensusReport: {
-    likelihoodToInvest: "30%",
-    overallFeedback: "Moderate interest. Recommend reaching key milestones before re-engaging.",
+    likelihoodToInvest: 15, // Mock value
+    summary: "This is mock data. Based on limited mock feedback, overall interest is low. Key concerns revolve around market validation and data."
   },
 }; 
-*/ 
