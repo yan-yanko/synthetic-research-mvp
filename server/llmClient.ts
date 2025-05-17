@@ -1,6 +1,13 @@
 import OpenAI from 'openai';
 import { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
+// --- Debugging Start ---
+console.log('[server/llmClient.ts] Loading... OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
+if (process.env.OPENAI_API_KEY) {
+  console.log('[server/llmClient.ts] OPENAI_API_KEY starts with:', process.env.OPENAI_API_KEY.substring(0, 5));
+}
+// --- Debugging End ---
+
 // Default client, used if no custom baseURL is provided in call params
 // It will use OPENAI_API_KEY from env.
 // It can also be configured with a default baseURL from env if desired:
@@ -39,6 +46,14 @@ async function callLLMWithRetries(
   userPrompt: string,
   params?: LLMCallParams
 ): Promise<ChatCompletion> {
+  // --- Debugging Start ---
+  console.log('[server/llmClient.ts callLLMWithRetries] Params received:', params);
+  if (params?.baseURL) {
+    console.log('[server/llmClient.ts callLLMWithRetries] Custom baseURL provided:', params.baseURL);
+  } else {
+    console.log('[server/llmClient.ts callLLMWithRetries] No custom baseURL, using default client.');
+  }
+  // --- Debugging End ---
   let attempts = 0;
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
