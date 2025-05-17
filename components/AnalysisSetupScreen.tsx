@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type { AnalysisSetup, PitchDetails, InvestorFeedbackResponse } from '../pages/deck-upload';
+import type { AnalysisSetup, PitchDetails } from '../pages/deck-upload';
+import type { InvestorFeedbackResponse } from '../types/feedback';
 
 interface AnalysisSetupScreenProps {
   onSetupComplete: (setup: AnalysisSetup, responseData: InvestorFeedbackResponse | null) => void;
