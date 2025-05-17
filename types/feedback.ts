@@ -117,4 +117,39 @@ export interface FeedbackError {
   personaId: string;
   personaName: string;
   error: string;
-} 
+}
+
+export interface InvestorFeedbackResponse {
+  emailResponses: string;
+  meetingNotes: {
+    strengths: string;
+    concerns: string;
+  };
+  slideFeedback: Array<{ slide: string; feedback: string }>;
+  consensusReport: {
+    likelihoodToInvest: string;
+    overallFeedback: string;
+  };
+}
+
+export interface MockSlideFeedback {
+  slide: string;
+  feedback: string;
+}
+
+export const mockData: InvestorFeedbackResponse = {
+  emailResponses: "Thank you for sharing your pitch. At this time, we believe you need more traction before we consider investing. Looking forward to future updates.",
+  meetingNotes: {
+    strengths: "Strong market opportunity, experienced team, clear value proposition.",
+    concerns: "Limited customer traction, competitive market, unclear monetization strategy.",
+  },
+  slideFeedback: [
+    { slide: "Slide 1 (Title Slide)", feedback: "Clear and professional." },
+    { slide: "Slide 2 (Problem)", feedback: "Problem is not quantified enough." },
+    { slide: "Slide 3 (Solution)", feedback: "Strong visual, could benefit from a clearer value proposition." },
+  ],
+  consensusReport: {
+    likelihoodToInvest: "30%",
+    overallFeedback: "Moderate interest. Recommend reaching key milestones before re-engaging.",
+  },
+}; 

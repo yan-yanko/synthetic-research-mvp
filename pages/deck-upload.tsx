@@ -5,6 +5,7 @@ import { DeckProcessingScreen } from '../components/DeckProcessingScreen';
 import { PitchDetailsScreen } from '../components/PitchDetailsScreen';
 import { AnalysisSetupScreen } from '../components/AnalysisSetupScreen';
 import { FeedbackDisplayScreen } from '../components/FeedbackDisplayScreen';
+import type { InvestorFeedbackResponse } from '../types/feedback'; // Updated import path
 
 // Define types for the flow steps and collected data
 type FlowStep = 'upload' | 'processing' | 'details' | 'analysisSetup' | 'feedbackDisplay';
@@ -25,19 +26,19 @@ export interface AnalysisSetup {
   selectedFeedbackTypes: string[];
 }
 
-// Define a type for the API response data
-export interface InvestorFeedbackResponse {
-  emailResponses: string;
-  meetingNotes: {
-    strengths: string;
-    concerns: string;
-  };
-  slideFeedback: Array<{ slide: string; feedback: string }>;
-  consensusReport: {
-    likelihoodToInvest: string;
-    overallFeedback: string;
-  };
-}
+// Define a type for the API response data -- THIS WILL BE REMOVED
+// export interface InvestorFeedbackResponse { 
+//   emailResponses: string;
+//   meetingNotes: {
+//     strengths: string;
+//     concerns: string;
+//   };
+//   slideFeedback: Array<{ slide: string; feedback: string }>;
+//   consensusReport: {
+//     likelihoodToInvest: string;
+//     overallFeedback: string;
+//   };
+// }
 
 export default function DeckUploaderPage() {
   const [currentFlowStep, setCurrentFlowStep] = useState<FlowStep>('upload');
