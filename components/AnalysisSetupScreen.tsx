@@ -55,9 +55,9 @@ export function AnalysisSetupScreen({ onSetupComplete, pitchFileName, deckBase64
     setError(null);
 
     const payload = {
-      deckUrl: "PLACEHOLDER_DECK_URL", 
-      // elevatorPitch: currentPitchDetails?.elevatorPitch || "", // Removed elevatorPitch
-      // We might want to send selectedPersonas and selectedFeedbackTypes to the backend too,
+      deckUrl: deckBase64 ? `data:application/pdf;base64,${deckBase64}` : "PLACEHOLDER_DECK_URL",
+      selectedPersonas: selectedPersonas,
+      ...(currentPitchDetails || {}),
     };
 
     try {

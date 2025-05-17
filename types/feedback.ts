@@ -120,18 +120,27 @@ export interface FeedbackError {
 }
 
 export interface InvestorFeedbackResponse {
-  emailResponses: string;
-  meetingNotes: {
-    strengths: string;
-    concerns: string;
-  };
-  slideFeedback: Array<{ slide: string; feedback: string }>;
-  consensusReport: {
-    likelihoodToInvest: string;
-    overallFeedback: string;
-  };
+  personaFeedbacks: PersonaFeedback[];
+  consensusReport: ConsensusReport;
 }
 
+export interface PersonaFeedback {
+  persona: string;
+  wouldTakeMeeting: "Yes" | "No";
+  strengths: string[];
+  concerns: string[];
+  emotionalTriggers: string[];
+  verdict: "Invest" | "Pass" | "Monitor and Revisit Later";
+}
+
+export interface ConsensusReport {
+  likelihoodToInvest: number;
+  summary: string;
+}
+
+// The old mockData is commented out as it's incompatible with the new InvestorFeedbackResponse structure
+// and the new API handler has its own fallback logic.
+/*
 export interface MockSlideFeedback {
   slide: string;
   feedback: string;
@@ -153,3 +162,4 @@ export const mockData: InvestorFeedbackResponse = {
     overallFeedback: "Moderate interest. Recommend reaching key milestones before re-engaging.",
   },
 }; 
+*/ 
