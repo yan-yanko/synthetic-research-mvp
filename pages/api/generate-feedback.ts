@@ -1,3 +1,4 @@
+console.log('[API /generate-feedback] File execution started - ABSOLUTE TOP OF FILE');
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { generateInvestorFeedback } from '../../generateInvestorFeedback'; // Adjust path as necessary
 import { FeedbackResponse, FeedbackError } from '../../types/feedback'; // Adjust path as necessary
@@ -6,6 +7,8 @@ type Data = {
   feedback?: (FeedbackResponse | FeedbackError)[];
   error?: string;
 };
+
+// console.log('[API /generate-feedback] File execution started - TOP OF FILE'); // REMOVE THIS LINE IF PRESENT
 
 export default async function handler(
   req: NextApiRequest,
