@@ -2,7 +2,7 @@ import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useEffect } from 'react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import '../styles/main.css';
+import '../styles/dist.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
