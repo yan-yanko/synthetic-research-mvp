@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PitchDetails, AnalysisSetup } from '../pages/deck-upload';
-import { type InvestorFeedbackResponse, mockData, type MockSlideFeedback } from '../types/feedback';
+import { type InvestorFeedbackResponse, mockData } from '../types/feedback';
 
 interface FeedbackDisplayScreenProps {
   deckInfo: PitchDetails & { originalFileName: string };
