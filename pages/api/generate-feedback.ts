@@ -1,7 +1,7 @@
-console.log('[API /generate-feedback] File execution started - ABSOLUTE TOP OF FILE');
+console.log('[API /generate-feedback] File execution started - ABSOLUTE TOP OF FILE V3');
 import type { NextApiRequest, NextApiResponse } from 'next';
-// import { generateInvestorFeedback } from '../../generateInvestorFeedback'; // Adjust path as necessary
-// import { FeedbackResponse, FeedbackError } from '../../types/feedback'; // Adjust path as necessary
+// THIS FILE SHOULD HAVE NO OTHER IMPORT STATEMENTS (COMMENTED OR OTHERWISE)
+// ESPECIALLY NO IMPORTS FROM '../../generateInvestorFeedback' OR '../../types/feedback'
 
 type Data = {
   // feedback?: (FeedbackResponse | FeedbackError)[];
@@ -15,10 +15,10 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-  console.log('[API /generate-feedback] Handler invoked - Test Point 1'); // New log
+  console.log('[API /generate-feedback] Handler invoked - Test Point 1 V3');
   // --- Debugging Start ---
   console.log('[API /generate-feedback] Request received. Method:', req.method);
-  console.log('[API /generate-feedback] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('[API /generate-feedback] Request body JSON:', JSON.stringify(req.body, null, 2));
   // const { deckSlides, elevatorPitch } = req.body;
   // console.log('[API /generate-feedback] deckSlides type:', typeof deckSlides, 'isArray:', Array.isArray(deckSlides));
   // console.log('[API /generate-feedback] elevatorPitch type:', typeof elevatorPitch);
@@ -35,12 +35,12 @@ export default async function handler(
   // }
 
   try {
-    console.log('[API /generate-feedback] Inside try block - BEFORE generateInvestorFeedback call - Test Point 2'); // New log
-    // const feedbackResults = await generateInvestorFeedback(deckSlides, elevatorPitch);
-    // return res.status(200).json({ feedback: feedbackResults });
-    return res.status(200).json({ message: 'generateInvestorFeedback call was BYPASSED for testing.' }); // Dummy response
+    console.log('[API /generate-feedback] Inside try block - Test Point 2 V3');
+    res.status(200).json({ message: 'API route V3 is ALIVE. No other modules were imported.' });
+    return; // Explicit return after sending response
   } catch (error: any) {
-    console.error('[API /generate-feedback] Error during DUMMY generateInvestorFeedback call:', error);
-    return res.status(500).json({ error: error.message || 'Failed to generate DUMMY investor feedback.' });
+    console.error('[API /generate-feedback] Error in DUMMY API route V3:', error);
+    res.status(500).json({ error: error.message || 'Failed in DUMMY API route V3.' });
+    return; // Explicit return after sending response
   }
 } 
