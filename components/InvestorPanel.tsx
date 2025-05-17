@@ -7,20 +7,26 @@ import { toast } from 'sonner';
 import { investorPersonas } from '../personas/investorPersonas'; // Import all personas
 import { SyntheticInvestor } from '../types/personas'; // Import SyntheticInvestor type
 
+// Define a more flexible API response type
+type ApiResponse = 
+  { feedback: (FeedbackResponse | FeedbackError)[] } |
+  { message: string; error?: undefined } | // Allow message, error should be undefined
+  { error: string; feedback?: undefined; message?: undefined }; // Allow error, others undefined
+
 interface InvestorPanelProps {
-  deckSlides: string[];
+  deckBase64Content: string;
   elevatorPitch: string;
-  uploadedFileName?: string;
+  originalFileName?: string;
 }
 
-export function InvestorPanel({ deckSlides, elevatorPitch, uploadedFileName }: InvestorPanelProps) {
+export function InvestorPanel({ deckBase64Content, elevatorPitch, originalFileName }: InvestorPanelProps) {
   const [activeFeedback, setActiveFeedback] = useState<(FeedbackResponse | FeedbackError)[]>([]);
   const [loadingFeedback, setLoadingFeedback] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const feedbackContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (deckSlides && deckSlides.length > 0) {
+    if (deckBase64Content) {
       const fetchFeedback = async () => {
         setLoadingFeedback(true);
         setError(null);
@@ -31,20 +37,33 @@ export function InvestorPanel({ deckSlides, elevatorPitch, uploadedFileName }: I
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ deckSlides, elevatorPitch }),
+            body: JSON.stringify({ deckBase64Content, elevatorPitch }),
           });
 
+          // Error handling for non-ok responses MUST come before trying to parse .json()
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to fetch feedback: ${response.statusText}`);
+            let errorMsg = `API Error: ${response.status}`;
+            try {
+              const errorData: { error?: string, message?: string } = await response.json();
+              errorMsg = errorData.error || errorData.message || `Failed to fetch feedback: ${response.statusText}`;
+            } catch (jsonError) {
+              // If parsing errorData fails, use the statusText or a generic message
+              errorMsg = `Failed to fetch feedback: ${response.statusText} (and error response was not valid JSON).`;
+            }
+            throw new Error(errorMsg);
           }
 
-          const data: { feedback?: (FeedbackResponse | FeedbackError)[] } = await response.json();
-          if (data.feedback) {
+          const data: ApiResponse = await response.json();
+
+          if ('feedback' in data && data.feedback) {
             setActiveFeedback(data.feedback);
             toast.success('Feedback generated successfully!', { id: toastId });
+          } else if ('message' in data && data.message) {
+            toast.success(data.message, { id: toastId });
+            setActiveFeedback([]); // Clear or handle appropriately if only a message is received
           } else {
-            throw new Error('No feedback data received from API.');
+            // This condition implies the response was OK but content was unexpected
+            throw new Error('Invalid or empty response structure from API.');
           }
         } catch (err: any) {
           console.error("Error fetching investor feedback:", err);
@@ -56,7 +75,7 @@ export function InvestorPanel({ deckSlides, elevatorPitch, uploadedFileName }: I
 
       fetchFeedback();
     }
-  }, [deckSlides, elevatorPitch]);
+  }, [deckBase64Content, elevatorPitch]);
 
   const handleExportPDF = async () => {
     if (feedbackContainerRef.current) {
@@ -65,7 +84,7 @@ export function InvestorPanel({ deckSlides, elevatorPitch, uploadedFileName }: I
         const html2pdf = (await import('html2pdf.js')).default;
         await html2pdf().from(feedbackContainerRef.current).set({
           margin: [0.5, 0.5, 0.5, 0.5], // inches
-          filename: uploadedFileName ? `${uploadedFileName.replace('.pdf', '')}-feedback.pdf` : 'investor-feedback.pdf',
+          filename: originalFileName ? `${originalFileName.replace('.pdf', '')}-feedback.pdf` : 'investor-feedback.pdf',
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2, logging: false, useCORS: true },
           jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -102,9 +121,9 @@ export function InvestorPanel({ deckSlides, elevatorPitch, uploadedFileName }: I
 
   return (
     <div ref={feedbackContainerRef}>
-      {uploadedFileName && (
+      {originalFileName && (
         <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <h2 className="text-xl font-semibold text-gray-800">Investor Feedback for: <span className="font-bold text-primary">{uploadedFileName}</span></h2>
+          <h2 className="text-xl font-semibold text-gray-800">Investor Feedback for: <span className="font-bold text-primary">{originalFileName}</span></h2>
         </div>
       )}
       

@@ -36,3 +36,25 @@ export async function processFileContent(file: File): Promise<{ slides: string[]
   }
   throw new Error('Only PDF files are supported at this time.');
 }
+
+/**
+ * Reads a File object and converts it to a Base64 encoded string.
+ * @param file The File object to read.
+ * @returns A Promise that resolves with the Base64 string (including the data URI prefix).
+ */
+export function readPDFAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to read file as Base64 string.'));
+      }
+    };
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    reader.readAsDataURL(file); // Reads the file as a data URL (Base64 encoded)
+  });
+}

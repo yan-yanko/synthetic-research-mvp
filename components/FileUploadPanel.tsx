@@ -1,15 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
-import { processFileContent } from '../utils/pdfReader';
-import { generateInvestorFeedback } from '../generateInvestorFeedback';
-import { InvestorPanel } from './InvestorPanel';
-import { InvestorSummaryPanel } from './InvestorSummaryPanel';
+import { readPDFAsBase64 } from '../utils/pdfReader';
 import { PeachLoader } from '@/components/ui/PeachLoader';
 import { toast } from 'sonner';
 // @ts-ignore
 // const html2pdf: any = require('html2pdf.js'); // REMOVE THIS LINE
 
 interface FileUploadPanelProps {
-  onUploadComplete: (slides: string[], file: File | null) => void;
+  onUploadComplete: (deckBase64: string | null, originalFileName: string | null) => void;
 }
 
 export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
@@ -17,53 +14,33 @@ export function FileUploadPanel({ onUploadComplete }: FileUploadPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<any>(null);
-  const [slides, setSlides] = useState<string[]>([]);
-  const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // Handle file selection and processing
   const handleFileChange = useCallback(async (file: File | null) => {
     if (!file) {
       setError('No file selected');
       toast.error('No file selected');
       setUploadedFile(null);
+      onUploadComplete(null, null);
       return;
     }
     setUploadedFile(file);
     setError('');
     setLoading(true);
-    const toastId = toast.loading(`Processing ${file.name}...`);
+    const toastId = toast.loading(`Processing ${file.name} for Base64 encoding...`);
     try {
-      // Only process the file here
-      const { slides } = await processFileContent(file);
-      // Pass slides and file info to parent
-      onUploadComplete(slides, file);
+      const base64String = await readPDFAsBase64(file);
+      onUploadComplete(base64String, file.name);
       toast.success(`${file.name} processed successfully.`, { id: toastId });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to process the uploaded file';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process the uploaded file into Base64';
       setError(errorMessage);
       toast.error(errorMessage, { id: toastId });
-      // Clear uploaded file state on error
       setUploadedFile(null);
-      onUploadComplete([], null); // Notify parent of failure
+      onUploadComplete(null, null);
     } finally {
       setLoading(false);
     }
   }, [onUploadComplete]);
-
-  const handleExportPDF = async () => { // Make async
-    if (feedbackRef.current) {
-      try {
-        // Dynamically import html2pdf.js
-        const html2pdf = (await import('html2pdf.js')).default;
-        await html2pdf().from(feedbackRef.current).save('investor-feedback.pdf');
-        // Consider adding toast notifications here if this export is used
-      } catch (err) {
-        console.error("Error exporting PDF from FileUploadPanel:", err);
-        // Consider adding toast error notification here
-      }
-    }
-  };
 
   return (
     <div className="mb-8 p-6 border border-gray-200 rounded-xl bg-white shadow-sm">
