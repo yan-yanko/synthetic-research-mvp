@@ -67,7 +67,7 @@ export default function DeckUploaderPage() {
           <InvestorPanel 
             deckBase64Content={deckBase64Content!}
             elevatorPitch={elevatorPitch}
-            originalFileName={originalFileName} 
+            originalFileName={originalFileName || undefined}
           />
         )}
       </div>
