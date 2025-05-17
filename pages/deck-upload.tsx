@@ -16,7 +16,7 @@ export interface PitchDetails {
   seekingAmount: string; // Keep as string for input, parse later if needed
   primaryRegion: string;
   executiveSummary: string;
-  elevatorPitch: string; // Added for collection in PitchDetailsScreen
+  // elevatorPitch: string; // Removed as per request
 }
 
 // Define a type for analysis setup
