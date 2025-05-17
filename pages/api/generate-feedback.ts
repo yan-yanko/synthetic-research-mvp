@@ -12,12 +12,13 @@ type Data = {
 // console.log('[API /generate-feedback] File execution started - TOP OF FILE'); // REMOVE THIS LINE IF PRESENT
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('API /generate-feedback hit');
-  
+  console.log('🔥 API HIT 🔥');
+  console.log('Request Method:', req.method);
+  console.log('Request Body:', JSON.stringify(req.body));
+
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // Dummy successful response for testing
-  return res.status(200).json({ message: 'API is alive and responding correctly.' });
+  return res.status(200).json({ message: 'API hit successfully!' });
 } 
