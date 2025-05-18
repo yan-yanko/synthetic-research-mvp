@@ -8,7 +8,7 @@ This MVP provides tools to analyze startup pitch decks and elevator pitches usin
 
 ## Key Features
 
-- **PDF Pitch Deck Analysis**: Upload PDF pitch decks for detailed analysis
+- **PDF Pitch Deck Analysis**: Upload PDF pitch decks for detailed analysis (Note: PDF parsing is currently bypassed in the main API endpoint for debugging, using placeholder content instead).
 - **Elevator Pitch Text Analysis**: Provide text-based elevator pitches for quick feedback
 - **Synthetic Investor Personas**: Multiple investor archetypes with different investment theses:
   - **Jordan**: Traction-Driven Operator focused on activation metrics and GTM execution
@@ -18,6 +18,8 @@ This MVP provides tools to analyze startup pitch decks and elevator pitches usin
 - **Investment Decision Simulation**: Get realistic assessment of investment potential
 - **AI Panel Summary**: Aggregated feedback with consensus analysis across all personas
 - **Follow-Up Simulations**: Respond to investor concerns and see how their stance changes
+- **LLM Integration**: Primarily uses OpenAI's gpt-4o via the `/api/generate-feedback` endpoint. Modular design for connecting to different LLM providers is a goal.
+- **Feedback Analysis**: Tools for extracting insights from investor feedback.
 
 ## Architecture
 
@@ -28,15 +30,15 @@ This MVP provides tools to analyze startup pitch decks and elevator pitches usin
 
 ## Components
 
-### Core Files
+### Core Logic & API
 
-- `personas/investorPersonas.ts` - Defines investor personas and their characteristics
-- `generateInvestorFeedback.ts` - Main entry point for generating feedback
-- `utils/buildPrompt.ts` - Constructs LLM prompts based on persona traits
-- `utils/responseProcessing.ts` - Parses and structures LLM responses
-- `utils/llmClient.ts` - Client for making API calls to language models
-- `utils/summarizeInvestorPanel.ts` - Aggregates multi-persona feedback into consensus insights
-- `utils/simulateFollowUp.ts` - Simulates investor responses to follow-up explanations
+- `pages/api/generate-feedback.ts`: Main Next.js API endpoint for receiving pitch data (deck content and elevator pitch), interacting with OpenAI for feedback generation based on selected personas, and returning structured feedback. Contains internal logic for prompt building and response parsing.
+- `personas/investorPersonas.ts`: Defines detailed investor personas and their characteristics. (Note: The `/api/generate-feedback` endpoint currently uses an internal, simplified persona configuration that should be consolidated with this file).
+- `synthetic-research-core/`: Contains foundational elements, including:
+  - `synthetic_persona_engine/FeedbackGenerator.ts`: A rule-based feedback generation engine (currently separate from the primary LLM-based API flow).
+  - `synthetic_persona_engine/PersonaLibrary.ts`: Utilities related to personas.
+  - `FeedbackTypes.ts`: Defines data structures for feedback.
+- `generateInvestorFeedback.ts` (root level): Currently a simplified placeholder and not integrated into the main API flow.
 
 ### UI Components
 
@@ -115,51 +117,18 @@ const feedback = await generateInvestorFeedback(deckSlides, elevatorPitch, custo
 3. Create an `.env.local` file with your OpenAI API key:
    ```
    OPENAI_API_KEY=your-api-key-here
+   # NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api (if running frontend and backend separately and need to proxy)
    ```
-4. Start the development server: `npm run dev`
+4. Start the development server (Next.js): `npm run dev` (This typically runs both frontend and API routes on http://localhost:3000 or a similar port)
 
-## Development
+### Starting the Application (Alternative if running backend separately)
 
-To extend with new investor personas, edit `personas/investorPersonas.ts` and add new persona objects with appropriate traits and investment theses.
+The main application is a Next.js app. `npm run dev` should suffice.
+If you intend to run a separate Node.js backend (as mentioned in some older parts of this README), ensure it's configured correctly. The primary API is now served via Next.js API routes.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Current Features
-
-- Upload a **pitch deck (PDF)** and **elevator pitch (text)**
-- Parse and analyze pitch materials
-- Match to the most relevant **synthetic investor persona**
-- Generate realistic feedback via GPT-4:
-  - Strengths
-  - Risks
-  - Would they take the next meeting?
-
-## Coming Soon
-
-- Real-world VC and angel recommendations (via OpenVC / Crunchbase)
-- Notion-style feedback export
-- User authentication + saved feedback history
-- Pricing plans (pay-per-feedback or credit system)
-
-## Running the App Locally
-
-### Prerequisites
-- Node.js 18+
-- `.env.local` file with:
-```
-OPENAI_API_KEY=sk-...
-```
-
-### Installation
+**Previous Backend Start Instructions (Review if needed):**
 ```bash
-npm install
-```
-
-### Start Backend
-```bash
-node server/index.js
+# node server/index.js # This might be for an older or separate backend.
 ```
 
 ### Start Frontend (Dev)
@@ -168,27 +137,29 @@ npm run dev
 ```
 
 App runs at:
-- Frontend: http://localhost:3001
-- Backend API: http://localhost:5001
+- Frontend & API: http://localhost:3000 (or as specified by `npm run dev`)
+- (If separate backend): Backend API: http://localhost:5001 (ensure this is still relevant)
 
-## File Structure Overview
+## File Structure Overview (Simplified for Next.js context)
 
 ```
-/server
-  /routes
-    upload.js          → Handles deck + pitch upload, GPT call
-    simulate.js        → Early testing route (raw GPT queries)
-  /utils
-    investorSelector.js → Matches pitch content to investor profile
-
-/interface_api (planned)
-  audienceBuilder.js
-  responseSimulator.js
-
-/public
-  /uploads             → Temporary file storage
-
-.env.local             → Your OpenAI API key
+/pages
+  /api                       → Next.js API routes (e.g., generate-feedback.ts)
+    generate-feedback.ts     → Main API endpoint for feedback generation
+  _app.tsx                   → Main Next.js app component
+  index.tsx                  → Landing page / main UI
+/components                  → React components for UI
+/personas                    → Investor persona definitions
+  investorPersonas.ts
+/synthetic-research-core     → Core TypeScript engine (partially integrated)
+  /synthetic_persona_engine
+/public                      → Static assets
+/styles                      → Global styles
+/lib                         → Client-side helper functions or libraries
+/utils                       → General utility functions (consider for API helpers)
+.env.local                   → Your OpenAI API key & other environment variables
+next.config.js               → Next.js configuration
+tsconfig.json                → TypeScript configuration
 ```
 
 ## Development Philosophy

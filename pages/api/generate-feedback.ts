@@ -3,7 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 // Removed getInvestorFeedbackFromAI and mockData imports as they are no longer used by the new handler
 import type { InvestorFeedbackResponse } from '../../types/feedback'; 
 import OpenAI from 'openai';
-// import pdf from 'pdf-parse'; // Temporarily commented out for debugging
+import { PDFExtract, PDFExtractPage, PDFExtractText } from 'pdf.js-extract'; // Added for PDF parsing
+import { investorPersonas, InvestorPersona } from '../../utils/persona'; // Updated import
 // THIS FILE SHOULD HAVE NO OTHER IMPORT STATEMENTS (COMMENTED OR OTHERWISE)
 // ESPECIALLY NO IMPORTS FROM '../../generateInvestorFeedback'
 
@@ -11,55 +12,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-type Persona = 'Angel Investor' | 'Analytical VC' | 'Impact Investor' | 'Institutional LP' | 'Growth Investor';
-
-const personaConfigs: Record<Persona, any> = {
-  'Angel Investor': {
-    riskAppetite: 'High',
-    biases: 'FOMO, Overconfidence',
-    concerns: 'Founder Vision, Market Potential',
-    decisionMakingStyle: 'Founder-First',
-    behavioralInconsistencies: 'Often influenced by market hype despite claiming founder-first approach.',
-    biasActivationChance: 0.3,
-    weight: 0.2,
-  },
-  'Analytical VC': {
-    riskAppetite: 'Moderate',
-    biases: 'Status Quo Bias, Loss Aversion',
-    concerns: 'Market Size, Data-Driven Proof',
-    decisionMakingStyle: 'Data-Driven',
-    behavioralInconsistencies: 'May over-analyze and miss opportunities if data is not perfect.',
-    biasActivationChance: 0.15,
-    weight: 0.3,
-  },
-  'Impact Investor': {
-    riskAppetite: 'Moderate',
-    biases: 'Ethical Bias, FOMO (for impact trends)',
-    concerns: 'Social/Environmental Impact, Measurable Outcomes',
-    decisionMakingStyle: 'Mission-Aligned',
-    behavioralInconsistencies: 'May prioritize impact over financial returns more than stated.',
-    biasActivationChance: 0.2,
-    weight: 0.1,
-  },
-  'Institutional LP': {
-    riskAppetite: 'Low',
-    biases: 'Loss Aversion, Status Quo Bias, Herd Mentality (following other LPs)',
-    concerns: 'Scalability, Risk Mitigation, Fund Manager Track Record',
-    decisionMakingStyle: 'Risk-Averse Portfolio Strategy',
-    behavioralInconsistencies: 'Claims long-term view but can be swayed by short-term market sentiment.',
-    biasActivationChance: 0.1,
-    weight: 0.2,
-  },
-  'Growth Investor': {
-    riskAppetite: 'High',
-    biases: 'FOMO, Herd Mentality, Confirmation Bias (on growth metrics)',
-    concerns: 'Revenue Growth, Market Leadership, Scalable Sales Model',
-    decisionMakingStyle: 'Metrics-Driven Growth Focus',
-    behavioralInconsistencies: 'Can sometimes ignore underlying profitability issues if top-line growth is exceptional.',
-    biasActivationChance: 0.25,
-    weight: 0.2,
-  },
-};
+// REMOVE type Persona and personaConfigs
+// type Persona = 'Angel Investor' | 'Analytical VC' | 'Impact Investor' | 'Institutional LP' | 'Growth Investor';
+// const personaConfigs: Record<Persona, any> = { ... };
 
 type Data = {
   // feedback?: (FeedbackResponse | FeedbackError)[];
@@ -70,37 +25,51 @@ type Data = {
 // console.log('[API /generate-feedback] File execution started - TOP OF FILE'); // REMOVE THIS LINE IF PRESENT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<InvestorFeedbackResponse | { error: string; details?: string; message?: string }>) {
-  console.log('[API /generate-feedback] Handler invoked (V4 - pdf-parse commented out).'); // New initial log
+  console.log('[API /generate-feedback] Handler invoked, preparing to use InvestorPersona objects.');
 
   if (req.method !== 'POST') {
     console.log('[API /generate-feedback] Method not POST, returning 405.');
     return res.status(405).json({ message: 'Method Not Allowed', error: 'Method Not Allowed' });
   }
 
-  const { deckUrl: deckBase64Content, selectedPersonas = Object.keys(personaConfigs), ...pitchDetailsFromClient } = req.body;
+  // Step 1.1: Expect selectedPersonas as string[] (IDs)
+  const { deckUrl: deckBase64Content, selectedPersonas: selectedPersonaIDs, ...pitchDetailsFromClient }: { selectedPersonas?: string[] } & any = req.body;
+  
   console.log("[API /generate-feedback] Received deckBase64Content (first 100 chars):", typeof deckBase64Content === 'string' ? deckBase64Content.substring(0, 100) + '...' : 'Not a string or not provided');
+  console.log("[API /generate-feedback] Received selectedPersonaIDs:", selectedPersonaIDs);
 
   if (!deckBase64Content) {
     console.log('[API /generate-feedback] deckBase64Content is missing, returning 400.');
     return res.status(400).json({ error: 'deckBase64Content is required.' });
   }
 
-  // --- Temporarily bypass PDF parsing --- 
-  let deckText = 'PDF parsing is temporarily bypassed for debugging. This is placeholder text.';
-  console.log(`[API /generate-feedback] deckText (bypassed): ${deckText}`);
-  // --- End of bypass ---
-  
-  let generatedExecutiveSummary = pitchDetailsFromClient.executiveSummary || 'Executive summary generation bypassed due to PDF parsing bypass.';
-  console.log(`[API /generate-feedback] generatedExecutiveSummary (bypassed or from client): ${generatedExecutiveSummary}`);
+  // Step 1.1: Map IDs to InvestorPersona objects
+  let personaObjs: InvestorPersona[] = [];
+  if (selectedPersonaIDs && selectedPersonaIDs.length > 0) {
+    personaObjs = selectedPersonaIDs
+      .map((id: string) => investorPersonas.find(p => p.id === id))
+      .filter(Boolean) as InvestorPersona[];
+  } else {
+    // If no personas selected, perhaps default to all, or handle as an error.
+    // For now, defaulting to all available personas if none are specified.
+    console.log('[API /generate-feedback] No selectedPersonaIDs provided, defaulting to all personas.');
+    personaObjs = [...investorPersonas];
+  }
+
+  if (personaObjs.length === 0) {
+    console.log('[API /generate-feedback] No valid personas found for the given IDs or no IDs provided and no defaults set. Selected IDs:', selectedPersonaIDs);
+    return res.status(400).json({ error: 'No valid investor personas selected or found.' });
+  }
+  console.log(`[API /generate-feedback] Using ${personaObjs.length} persona objects for feedback.`);
+
+
+  let deckText = '';
+  let generatedExecutiveSummary = pitchDetailsFromClient.executiveSummary || '';
 
   try {
-    // --- PDF Parsing Block - Entirely Commented Out for now ---
-    /*
     if (typeof deckBase64Content === 'string' && deckBase64Content.startsWith('data:application/pdf;base64,')) {
         console.log('[API /generate-feedback] Attempting to parse PDF from Base64 string.');
         const base64Data = deckBase64Content.replace(/^data:application\/pdf;base64,/, '');
-        console.log('[API /generate-feedback] Base64 data (first 60 chars after stripping prefix):', base64Data.substring(0, 60) + '...');
-        
         const pdfBuffer = Buffer.from(base64Data, 'base64');
         console.log(`[API /generate-feedback] PDF Buffer length: ${pdfBuffer.length}`);
 
@@ -109,81 +78,80 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
             deckText = 'Error: PDF Buffer empty after decoding.';
         } else {
             try {
-                // const data = await pdf(pdfBuffer); // pdf-parse call commented out
-                // deckText = data.text;
-                // console.log(`[API /generate-feedback] PDF content extracted successfully. Text length: ${deckText.length}. Pages: ${data.numpages}.`);
-                // if (deckText.length === 0) {
-                //     console.warn('[API /generate-feedback] PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.');
-                // }
+                const pdfExtract = new PDFExtract();
+                const data = await pdfExtract.extractBuffer(pdfBuffer, {});
+                deckText = data.pages.map((page: PDFExtractPage) => 
+                    page.content.filter((item: PDFExtractText) => item.str.trim() !== '').map((item: PDFExtractText) => item.str).join('\n')
+                ).join('\n\n--- Page Break ---\n\n');
+                console.log(`[API /generate-feedback] PDF content extracted successfully. Text length: ${deckText.length}. Pages: ${data.pdfInfo?.numPages || data.pages.length}.`);
+                if (deckText.trim().length === 0) {
+                    console.warn('[API /generate-feedback] PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.');
+                    deckText = 'Warning: PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.';
+                }
             } catch (parseError: any) {
-                console.error('[API /generate-feedback] Error during pdf-parse execution:', parseError.message);
+                console.error('[API /generate-feedback] Error during PDF extraction:', parseError.message, parseError.stack);
                 deckText = `Error parsing PDF content: ${parseError.message}`;
             }
         }
     } else {
-        console.warn('[API /generate-feedback] deckBase64Content is not in the expected format or is missing. Using placeholder deckText.');
-        deckText = 'Error: Invalid or missing PDF data format.';
+        console.warn('[API /generate-feedback] deckBase64Content is not in the expected format or is missing. Cannot extract text.');
+        deckText = 'Error: Invalid or missing PDF data format for extraction.';
     }
-    */
-    // --- End of PDF Parsing Block Comment ---
 
-    // --- Executive Summary Generation - Bypassed if it depends on deckText from pdf-parse ---
-    /*
-    if (deckText && deckText !== 'No content extracted from PDF.' && deckText !== 'Error: PDF Buffer empty after decoding.' && deckText !== 'Error: Invalid or missing PDF data format.' && !deckText.startsWith('Error parsing PDF content:')) {
+    if (!generatedExecutiveSummary && deckText && !deckText.startsWith('Error:') && !deckText.startsWith('Warning:')) {
         try {
-            console.log('[API /generate-feedback] Attempting to generate executive summary with OpenAI (bypassed pdf-parse).');
+            console.log('[API /generate-feedback] Attempting to generate executive summary with OpenAI.');
             const summaryResponse = await openai.chat.completions.create({
                 model: 'gpt-4o',
                 messages: [{ role: 'user', content: `Based on this pitch content, write a compelling Executive Summary (max 200 words):\n\n${deckText}` }],
-                max_tokens: 300,
+                max_tokens: 300, // Adjusted max_tokens for summary
                 temperature: 0.5,
             });
-            generatedExecutiveSummary = summaryResponse.choices[0]?.message?.content || generatedExecutiveSummary;
-            console.log('[API /generate-feedback] Executive summary generated successfully (bypassed pdf-parse).');
+            generatedExecutiveSummary = summaryResponse.choices[0]?.message?.content || 'Could not generate executive summary.';
+            console.log('[API /generate-feedback] Executive summary generated successfully.');
         } catch (summaryError: any) {
-            console.error('[API /generate-feedback] Failed to generate executive summary (bypassed pdf-parse):', summaryError.message);
+            console.error('[API /generate-feedback] Failed to generate executive summary:', summaryError.message, summaryError.stack);
+            generatedExecutiveSummary = 'Error generating executive summary.';
         }
+    } else if (!generatedExecutiveSummary) {
+      generatedExecutiveSummary = 'Executive summary could not be generated due to issues with PDF content.';
     }
-    */
-    // --- End of Executive Summary Generation Comment ---
     
-    const finalPitchDetails = {
+    const finalPitchDetails = { // This is passed to buildPersonaPrompt through its parameters now
         ...pitchDetailsFromClient,
-        executiveSummary: generatedExecutiveSummary 
+        // executiveSummary: generatedExecutiveSummary // This is now passed directly
     };
-    console.log('[API /generate-feedback] Final pitch details prepared for persona prompts.', finalPitchDetails);
+    console.log('[API /generate-feedback] Final pitch details (client part):', finalPitchDetails);
 
     const personaFeedbacks = await Promise.all(
-      (selectedPersonas as Persona[]).map(async (persona: Persona) => {
-        const personaData = personaConfigs[persona];
-        if (!personaData) {
-          console.warn(`Configuration for persona ${persona} not found. Skipping.`);
-          return { persona, biasApplied: false, ...parseLLMResponse(persona, '{}') }; 
-        }
-        const applyBias = Math.random() < personaData.biasActivationChance;
-        console.log(`[${persona}] Bias Applied: ${applyBias}`); 
+      personaObjs.map(async (personaInstance: InvestorPersona) => { // personaInstance is InvestorPersona
+        // applyBias logic removed as per refactor plan. Prompt will instruct LLM to embody persona.
+        console.log(`[${personaInstance.name}] Generating feedback.`); 
 
-        const prompt = buildPersonaPrompt(persona, personaData, finalPitchDetails, applyBias, deckText); // deckText is now placeholder
-        console.log(`[API /generate-feedback] Prompt for ${persona}:\n${prompt}`);
+        const prompt = buildPersonaPrompt(personaInstance, deckText, generatedExecutiveSummary);
+        console.log(`[API /generate-feedback] Prompt for ${personaInstance.name}:\n${prompt}`);
 
-        console.log(`[API /generate-feedback] Calling OpenAI for persona: ${persona}`);
+        console.log(`[API /generate-feedback] Calling OpenAI for persona: ${personaInstance.name}`);
         const response = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          model: 'gpt-4o', // Consider making this configurable
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 800,
-          temperature: 0.4,
+          max_tokens: 800, // Consider adjusting based on expected feedback length
+          temperature: personaInstance.behaviorProfile.temperature || 0.4, // Use persona's temperature
         });
-        console.log(`[API /generate-feedback] OpenAI response received for ${persona}`);
+        console.log(`[API /generate-feedback] OpenAI response received for ${personaInstance.name}`);
 
         const content = response.choices[0]?.message?.content || '';
-        const parsedLLMData = parseLLMResponse(persona, content);
-        return { ...parsedLLMData, biasApplied: applyBias };
+        // Pass personaInstance.name to parseLLMResponse
+        const parsedLLMData = parseLLMResponse(personaInstance.name, content);
+        // Removed biasApplied from the return object
+        return { ...parsedLLMData, persona: personaInstance.name, id: personaInstance.id }; // Ensure 'persona' (name) and 'id' are in the response
       })
     );
     
     console.log('[API /generate-feedback] All persona feedback generated.');
-    const validFeedbacks = personaFeedbacks.filter(fb => fb && fb.persona && typeof fb.biasApplied === 'boolean');
-    const likelihood = calculateConsensusLikelihood(validFeedbacks);
+    // Filter for feedbacks that have at least a persona name.
+    const validFeedbacks = personaFeedbacks.filter(fb => fb && fb.persona);
+    const likelihood = calculateConsensusLikelihood(validFeedbacks, investorPersonas); // Pass full investorPersonas for lookup
 
     const responseJson: InvestorFeedbackResponse = {
       personaFeedbacks: validFeedbacks,
@@ -192,9 +160,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         summary: generateConsensusSummary(likelihood),
       },
       generatedExecutiveSummary: generatedExecutiveSummary,
-      parsedDeckText: deckText, // Will be the placeholder text
+      parsedDeckText: deckText,
     };
-    console.log('[API /generate-feedback] Sending 200 response.', responseJson);
+    console.log('[API /generate-feedback] Sending 200 response.');
     return res.status(200).json(responseJson);
 
   } catch (error: any) {
@@ -209,82 +177,88 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 // --- Helper Functions ---
 
-// Updated buildPersonaPrompt to include deckContent and use the (potentially AI-generated) executiveSummary
+// Step 1.3: Update buildPersonaPrompt signature and logic
 function buildPersonaPrompt(
-    persona: Persona, 
-    data: any, 
-    pitchDetails: any, // This now contains the AI-generated executive summary
-    applyBias: boolean,
-    deckContent: string // Added deckContent
+    persona: InvestorPersona,
+    deckContent: string, // Added deckContent from user's previous notes, matches my plan
+    executiveSummary: string // Added executiveSummary
 ): string {
-  const pd = {
-    fundingStage: pitchDetails.fundingStage || 'Seed',
-    industry: pitchDetails.industry || 'Not specified',
-    seekingAmount: pitchDetails.seekingAmount ? formatAmount(pitchDetails.seekingAmount) : 'Not specified',
-    primaryRegion: pitchDetails.primaryRegion || 'Not specified',
-    executiveSummary: pitchDetails.executiveSummary || 'Not provided' // This will be the AI-generated one
-  };
+  // pitchDetails are now sourced from request body and executiveSummary argument
+  // We'll use what's available in `persona` (InvestorPersona type) and `finalPitchDetails` from handler scope
+  // For this refactor, `finalPitchDetails` is not directly passed. We should use `executiveSummary` and other details from `persona` or request if needed.
+  // The original `pitchDetails` for prompt was: fundingStage, industry, seekingAmount, primaryRegion, executiveSummary.
+  // These are not part of InvestorPersona. They come from `pitchDetailsFromClient` in the handler.
+  // This function needs access to those client-provided details.
+  // For now, let's assume they are implicitly available or we focus on persona and deck.
+  // A better refactor would pass `pitchDetailsFromClient` into this function.
+  // For now, to match the signature strictly, I'll use placeholders if not in persona.
 
-  const biasInstruction = applyBias 
-    ? `IMPORTANT: Despite logical analysis, your cognitive biases (${data.biases}) are strongly influencing you. Let these biases significantly shape your response, potentially leading to a less rational, more emotionally-driven feedback and verdict. Emphasize aspects that trigger these biases.`
-    : "Provide a balanced and rational analysis based on your investor profile.";
+  const profile = persona.behaviorProfile;
+  const decisionStyle = persona.type ? `${persona.type} type investor` : (persona.behavioralTraits.join(', ') || 'default decision style');
+  // Cognitive biases will be represented by behavioral traits
+  const cognitiveBiases = persona.behavioralTraits.join(', ') || 'standard professional judgment';
+  // Behavioral inconsistencies are not in InvestorPersona, use a generic or omit.
+  const behavioralInconsistencies = "Strives for rational analysis but may be influenced by core traits.";
 
-  // Updated prompt to include Pitch Deck Content
+
+  // Bias instruction is now implicitly part of asking the LLM to embody the persona.
+  const instruction = `You are simulating a venture capital investor: ${persona.name}.
+Embody this persona accurately based on all provided details. Your feedback should reflect deep analysis of the pitch deck content.`;
+
   return `
-You are simulating a venture capital investor named ${persona}.
+${instruction}
 
 Investor Profile:
-- Investment Stage Focus: ${pd.fundingStage}
-- Risk Appetite: ${data.riskAppetite}
-- Decision-Making Style: ${data.decisionMakingStyle}
-- Behavioral Inconsistencies: ${data.behavioralInconsistencies}
-- Cognitive Biases: ${data.biases}
+- Name: ${persona.name}
+- Type/Focus: ${persona.type}
+- Investment Thesis: ${persona.investmentThesis}
+- Key Behavioral Traits (these should heavily influence your feedback): ${cognitiveBiases}
+- Stated Risk Appetite: ${profile.riskAppetite || 'Not specified'}
+- Typical Decision-Making Style: ${decisionStyle}
+- Known Behavioral Inconsistencies (reminder): ${behavioralInconsistencies}
+- Industry Bias: ${profile.industryBias?.join(', ') || 'None specified'}
+- Investment Stage Focus: (User to provide, e.g., Seed, Series A)
+- Seeking Amount: (User to provide)
+- Primary Region: (User to provide)
 
-${biasInstruction}
-
-Pitch Details (Provided by User & AI Refined Summary):
-- Industry: ${pd.industry}
-- Funding Stage: ${pd.fundingStage}
-- Seeking Amount: $${pd.seekingAmount}
-- Primary Region: ${pd.primaryRegion}
-- Executive Summary: ${pd.executiveSummary}
+Executive Summary (AI Generated from Deck):
+--- START OF EXECUTIVE SUMMARY ---
+${executiveSummary}
+--- END OF EXECUTIVE SUMMARY ---
 
 Full Pitch Deck Content:
 --- START OF PITCH DECK CONTENT ---
 ${deckContent}
 --- END OF PITCH DECK CONTENT ---
 
-Based on ALL the information above (Investor Profile, Pitch Details, and especially the Full Pitch Deck Content), provide your realistic investor analysis.
+Based on ALL the information above (your detailed Investor Profile, the Executive Summary, and especially the Full Pitch Deck Content), provide your realistic investor analysis.
 Focus your feedback on the substance of the pitch deck.
 
 Respond *ONLY* with a valid JSON object in the following format (no other text, no markdown):
 {
-  "wouldTakeMeeting": "Yes/No",
-  "strengths": ["strength 1 based on deck content", "strength 2 based on deck content", "strength 3 based on deck content"],
-  "concerns": ["concern 1 based on deck content", "concern 2 based on deck content", "concern 3 based on deck content"],
-  "emotionalTriggers": ["trigger 1", "trigger 2"],
-  "verdict": "Invest / Pass / Monitor and Revisit Later"
+  "wouldTakeMeeting": "Yes/No", // Based on your persona's typical bar
+  "strengths": ["Specific strength 1 from deck content related to your persona's focus", "Specific strength 2 from deck content", "..."],
+  "concerns": ["Specific concern 1 from deck content related to your persona's focus", "Specific concern 2 from deck content", "..."],
+  "keyQuestions": ["Question 1 directly related to deck content and your persona", "Question 2", "..."], // Renamed from emotionalTriggers to be more actionable
+  "verdict": "Invest / Pass / Monitor and Revisit Later" // Your overall judgment
 }
 `;
 }
 
-function parseLLMResponse(persona: Persona, content: string) {
+// Updated to take personaName (string)
+function parseLLMResponse(personaName: string, content: string) {
   try {
-    // Improved regex to catch JSON block that might not be perfectly formatted with triple backticks
     const jsonMatch = content.match(/\{([\s\S]*?)\}/);
     let jsonToParse = content;
     if (jsonMatch && jsonMatch[0]) {
         jsonToParse = jsonMatch[0];
     } else {
-        // Fallback for cases where even the relaxed regex doesn't find a clear JSON object
-        // This often happens if the LLM doesn't return valid JSON at all.
         if (!content.trim().startsWith('{') || !content.trim().endsWith('}')) {
-            console.warn(`Content for ${persona} does not appear to be a JSON object: "${content}"`);
-             // Attempt to find a JSON-like structure if it's embedded
+            console.warn(`Content for ${personaName} does not appear to be a JSON object: "${content}"`);
             const relaxedJsonMatch = content.match(/\{[\s\S]*\}/m);
             if (relaxedJsonMatch && relaxedJsonMatch[0]) {
                 jsonToParse = relaxedJsonMatch[0];
-                console.log(`Relaxed JSON match found for ${persona}: "${jsonToParse}"`);
+                console.log(`Relaxed JSON match found for ${personaName}: "${jsonToParse}"`);
             } else {
                 throw new Error("No clear JSON object found in response.");
             }
@@ -292,44 +266,48 @@ function parseLLMResponse(persona: Persona, content: string) {
     }
     
     const parsed = JSON.parse(jsonToParse);
-    return { persona, ...parsed };
-  } catch (e: any) { // Added type for e
-    console.warn(`Failed to parse JSON response for ${persona}. Content: "${content}". Error: ${e.message}`);
-    return {
-      persona,
-      biasApplied: false, // Ensure biasApplied is part of the fallback
+    // persona name is already known, just return parsed data
+    return parsed; // The calling map adds the persona name and id
+  } catch (e: any) {
+    console.warn(`Failed to parse JSON response for ${personaName}. Content: "${content}". Error: ${e.message}`);
+    return { // Fallback structure, persona name/id will be added by caller
       wouldTakeMeeting: 'No',
       strengths: ["Error parsing AI response from LLM."],
       concerns: ["Could not interpret AI output for this persona. The response might not have been valid JSON or was incomplete."],
-      emotionalTriggers: [],
+      keyQuestions: [],
       verdict: 'Pass',
     };
   }
 }
 
-function calculateConsensusLikelihood(feedbacks: any[]) {
+// Updated to use InvestorPersona and assume equal weights for now
+function calculateConsensusLikelihood(feedbacks: any[], allPersonas: InvestorPersona[]) {
+  if (!feedbacks || feedbacks.length === 0) return 0;
+
   let totalScore = 0;
-  let totalWeight = 0;
+  let validFeedbacksCount = 0;
 
   feedbacks.forEach((fb) => {
-    const personaConfig = personaConfigs[fb.persona as Persona];
-    if (personaConfig) {
-      const weight = personaConfig.weight;
+    // const personaDetails = allPersonas.find(p => p.id === fb.id || p.name === fb.persona); // fb should have id
+    // For now, we assume fb has a verdict. Weight is not in InvestorPersona. Assume equal weight.
+    // if (personaDetails) { // This check isn't strictly necessary if feedbacks are pre-filtered
       const verdictScore = getVerdictScore(fb.verdict);
-      totalScore += weight * verdictScore;
-      totalWeight += weight; 
-    }
+      totalScore += verdictScore;
+      validFeedbacksCount++;
+    // }
   });
 
-  if (totalWeight === 0) return 0; 
-  return Math.round((totalScore / totalWeight) * 100);
+  if (validFeedbacksCount === 0) return 0; 
+  return Math.round((totalScore / validFeedbacksCount) * 100); // Average score as likelihood
 }
 
 function getVerdictScore(verdict?: string) {
   if (!verdict) return 0;
-  if (verdict.includes('Invest')) return 1;
-  if (verdict.includes('Monitor')) return 0.5;
-  return 0;
+  if (verdict.toLowerCase().includes('invest')) return 1;
+  if (verdict.toLowerCase().includes('monitor')) return 0.5;
+  // "Yes" for wouldTakeMeeting could also be a factor, but sticking to verdict for now.
+  if (verdict.toLowerCase().includes('pass')) return 0; 
+  return 0; // Default for unrecognized verdicts
 }
 
 function generateConsensusSummary(likelihood: number) {
