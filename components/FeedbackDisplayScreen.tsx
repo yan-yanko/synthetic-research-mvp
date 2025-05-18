@@ -138,6 +138,11 @@ export function FeedbackDisplayScreen({ deckInfo, analysisSettings, apiResponseD
                     <h4 className="font-medium text-base mt-3">Overall Summary:</h4>
                     <p className="text-base whitespace-pre-line">{dataToDisplay.consensusReport.summary}</p>
                   </div>
+                  <div className="mt-4 text-xs">
+                    {apiResponseData 
+                      ? <span style={{ color: 'green' }}>Live AI Feedback</span> 
+                      : <span style={{ color: 'orange' }}>Mock Data (Demo Only)</span>}
+                  </div>
                 </>
               ) : (
                 <p className="text-muted-foreground">Consensus report data is not available.</p>

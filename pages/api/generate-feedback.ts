@@ -95,6 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log(`[${persona}] Bias Applied: ${applyBias}`); 
 
         const prompt = buildPersonaPrompt(persona, personaData, pitchDetails, applyBias);
+        console.log(`[API /generate-feedback] Prompt for ${persona}:\n${prompt}`);
 
         const response = await openai.chat.completions.create({
           model: 'gpt-4o',
