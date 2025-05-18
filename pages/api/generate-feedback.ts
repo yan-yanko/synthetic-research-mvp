@@ -1,9 +1,9 @@
-console.log('[API /generate-feedback] File execution started - ABSOLUTE TOP OF FILE V3');
+// console.log('[API /generate-feedback] File execution started - ABSOLUTE TOP OF FILE V3'); // Keep this for the very first line test
 import type { NextApiRequest, NextApiResponse } from 'next';
 // Removed getInvestorFeedbackFromAI and mockData imports as they are no longer used by the new handler
 import type { InvestorFeedbackResponse } from '../../types/feedback'; 
 import OpenAI from 'openai';
-import pdf from 'pdf-parse'; // Added pdf-parse import
+// import pdf from 'pdf-parse'; // Temporarily commented out for debugging
 // THIS FILE SHOULD HAVE NO OTHER IMPORT STATEMENTS (COMMENTED OR OTHERWISE)
 // ESPECIALLY NO IMPORTS FROM '../../generateInvestorFeedback'
 
@@ -70,25 +70,32 @@ type Data = {
 // console.log('[API /generate-feedback] File execution started - TOP OF FILE'); // REMOVE THIS LINE IF PRESENT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<InvestorFeedbackResponse | { error: string; details?: string; message?: string }>) {
+  console.log('[API /generate-feedback] Handler invoked (V4 - pdf-parse commented out).'); // New initial log
+
   if (req.method !== 'POST') {
+    console.log('[API /generate-feedback] Method not POST, returning 405.');
     return res.status(405).json({ message: 'Method Not Allowed', error: 'Method Not Allowed' });
   }
 
-  // Renamed deckUrl to deckBase64Content for clarity as it contains Base64 PDF data
   const { deckUrl: deckBase64Content, selectedPersonas = Object.keys(personaConfigs), ...pitchDetailsFromClient } = req.body;
-
-  // Log the received Base64 content (or a snippet if too long)
   console.log("[API /generate-feedback] Received deckBase64Content (first 100 chars):", typeof deckBase64Content === 'string' ? deckBase64Content.substring(0, 100) + '...' : 'Not a string or not provided');
 
   if (!deckBase64Content) {
+    console.log('[API /generate-feedback] deckBase64Content is missing, returning 400.');
     return res.status(400).json({ error: 'deckBase64Content is required.' });
   }
 
-  let deckText = 'No content extracted from PDF.';
-  let generatedExecutiveSummary = pitchDetailsFromClient.executiveSummary || 'Executive summary could not be generated.';
+  // --- Temporarily bypass PDF parsing --- 
+  let deckText = 'PDF parsing is temporarily bypassed for debugging. This is placeholder text.';
+  console.log(`[API /generate-feedback] deckText (bypassed): ${deckText}`);
+  // --- End of bypass ---
+  
+  let generatedExecutiveSummary = pitchDetailsFromClient.executiveSummary || 'Executive summary generation bypassed due to PDF parsing bypass.';
+  console.log(`[API /generate-feedback] generatedExecutiveSummary (bypassed or from client): ${generatedExecutiveSummary}`);
 
   try {
-    // Decode Base64 and parse PDF
+    // --- PDF Parsing Block - Entirely Commented Out for now ---
+    /*
     if (typeof deckBase64Content === 'string' && deckBase64Content.startsWith('data:application/pdf;base64,')) {
         console.log('[API /generate-feedback] Attempting to parse PDF from Base64 string.');
         const base64Data = deckBase64Content.replace(/^data:application\/pdf;base64,/, '');
@@ -99,15 +106,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
         if (pdfBuffer.length === 0) {
             console.warn('[API /generate-feedback] PDF Buffer is empty after Base64 decoding. Cannot parse.');
-            deckText = 'Error: PDF Buffer empty after decoding.'; // Set specific error
+            deckText = 'Error: PDF Buffer empty after decoding.';
         } else {
             try {
-                const data = await pdf(pdfBuffer);
-                deckText = data.text;
-                console.log(`[API /generate-feedback] PDF content extracted successfully. Text length: ${deckText.length}. Pages: ${data.numpages}.`);
-                if (deckText.length === 0) {
-                    console.warn('[API /generate-feedback] PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.');
-                }
+                // const data = await pdf(pdfBuffer); // pdf-parse call commented out
+                // deckText = data.text;
+                // console.log(`[API /generate-feedback] PDF content extracted successfully. Text length: ${deckText.length}. Pages: ${data.numpages}.`);
+                // if (deckText.length === 0) {
+                //     console.warn('[API /generate-feedback] PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.');
+                // }
             } catch (parseError: any) {
                 console.error('[API /generate-feedback] Error during pdf-parse execution:', parseError.message);
                 deckText = `Error parsing PDF content: ${parseError.message}`;
@@ -115,34 +122,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         }
     } else {
         console.warn('[API /generate-feedback] deckBase64Content is not in the expected format or is missing. Using placeholder deckText.');
-        deckText = 'Error: Invalid or missing PDF data format.'; // Set specific error
-        // Potentially use a less critical fallback or error if PDF content is essential
+        deckText = 'Error: Invalid or missing PDF data format.';
     }
+    */
+    // --- End of PDF Parsing Block Comment ---
 
-    // Generate Executive Summary from deckText
-    if (deckText && deckText !== 'No content extracted from PDF.') {
+    // --- Executive Summary Generation - Bypassed if it depends on deckText from pdf-parse ---
+    /*
+    if (deckText && deckText !== 'No content extracted from PDF.' && deckText !== 'Error: PDF Buffer empty after decoding.' && deckText !== 'Error: Invalid or missing PDF data format.' && !deckText.startsWith('Error parsing PDF content:')) {
         try {
+            console.log('[API /generate-feedback] Attempting to generate executive summary with OpenAI (bypassed pdf-parse).');
             const summaryResponse = await openai.chat.completions.create({
                 model: 'gpt-4o',
-                messages: [{ role: 'user', content: `Based on this pitch content, write a compelling Executive Summary (max 200 words):
-
-${deckText}` }],
-                max_tokens: 300, // Adjusted for summary length
+                messages: [{ role: 'user', content: `Based on this pitch content, write a compelling Executive Summary (max 200 words):\n\n${deckText}` }],
+                max_tokens: 300,
                 temperature: 0.5,
             });
             generatedExecutiveSummary = summaryResponse.choices[0]?.message?.content || generatedExecutiveSummary;
-            console.log('[API /generate-feedback] Executive summary generated successfully.');
+            console.log('[API /generate-feedback] Executive summary generated successfully (bypassed pdf-parse).');
         } catch (summaryError: any) {
-            console.error('[API /generate-feedback] Failed to generate executive summary:', summaryError.message);
-            // Keep the user-provided or default summary
+            console.error('[API /generate-feedback] Failed to generate executive summary (bypassed pdf-parse):', summaryError.message);
         }
     }
+    */
+    // --- End of Executive Summary Generation Comment ---
     
-    // Prepare pitch details for persona prompts, using the newly generated executive summary
     const finalPitchDetails = {
         ...pitchDetailsFromClient,
         executiveSummary: generatedExecutiveSummary 
     };
+    console.log('[API /generate-feedback] Final pitch details prepared for persona prompts.', finalPitchDetails);
 
     const personaFeedbacks = await Promise.all(
       (selectedPersonas as Persona[]).map(async (persona: Persona) => {
@@ -154,16 +163,17 @@ ${deckText}` }],
         const applyBias = Math.random() < personaData.biasActivationChance;
         console.log(`[${persona}] Bias Applied: ${applyBias}`); 
 
-        // Pass deckText and finalPitchDetails (with AI summary) to buildPersonaPrompt
-        const prompt = buildPersonaPrompt(persona, personaData, finalPitchDetails, applyBias, deckText);
+        const prompt = buildPersonaPrompt(persona, personaData, finalPitchDetails, applyBias, deckText); // deckText is now placeholder
         console.log(`[API /generate-feedback] Prompt for ${persona}:\n${prompt}`);
 
+        console.log(`[API /generate-feedback] Calling OpenAI for persona: ${persona}`);
         const response = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 800,
           temperature: 0.4,
         });
+        console.log(`[API /generate-feedback] OpenAI response received for ${persona}`);
 
         const content = response.choices[0]?.message?.content || '';
         const parsedLLMData = parseLLMResponse(persona, content);
@@ -171,22 +181,24 @@ ${deckText}` }],
       })
     );
     
+    console.log('[API /generate-feedback] All persona feedback generated.');
     const validFeedbacks = personaFeedbacks.filter(fb => fb && fb.persona && typeof fb.biasApplied === 'boolean');
     const likelihood = calculateConsensusLikelihood(validFeedbacks);
 
-    return res.status(200).json({
+    const responseJson: InvestorFeedbackResponse = {
       personaFeedbacks: validFeedbacks,
       consensusReport: {
         likelihoodToInvest: likelihood,
         summary: generateConsensusSummary(likelihood),
       },
-      generatedExecutiveSummary: generatedExecutiveSummary, // Return AI-generated summary
-      parsedDeckText: deckText, // Return parsed PDF text for debugging
-    });
+      generatedExecutiveSummary: generatedExecutiveSummary,
+      parsedDeckText: deckText, // Will be the placeholder text
+    };
+    console.log('[API /generate-feedback] Sending 200 response.', responseJson);
+    return res.status(200).json(responseJson);
 
   } catch (error: any) {
-    console.error('[API /generate-feedback] Feedback generation failed:', error);
-    // Ensure the response type matches the generic parameter for NextApiResponse
+    console.error('[API /generate-feedback] Overall catch block error:', error.message, error.stack);
     const errorResponse: { error: string; details?: string } = { 
         error: 'Internal Server Error', 
         details: error.message 
