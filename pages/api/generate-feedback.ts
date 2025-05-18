@@ -90,13 +90,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   try {
     // Decode Base64 and parse PDF
     if (typeof deckBase64Content === 'string' && deckBase64Content.startsWith('data:application/pdf;base64,')) {
+        console.log('[API /generate-feedback] Attempting to parse PDF from Base64 string.');
         const base64Data = deckBase64Content.replace(/^data:application\/pdf;base64,/, '');
+        console.log('[API /generate-feedback] Base64 data (first 60 chars after stripping prefix):', base64Data.substring(0, 60) + '...');
+        
         const pdfBuffer = Buffer.from(base64Data, 'base64');
-        const data = await pdf(pdfBuffer);
-        deckText = data.text;
-        console.log('[API /generate-feedback] PDF content extracted successfully.');
+        console.log(`[API /generate-feedback] PDF Buffer length: ${pdfBuffer.length}`);
+
+        if (pdfBuffer.length === 0) {
+            console.warn('[API /generate-feedback] PDF Buffer is empty after Base64 decoding. Cannot parse.');
+            deckText = 'Error: PDF Buffer empty after decoding.'; // Set specific error
+        } else {
+            try {
+                const data = await pdf(pdfBuffer);
+                deckText = data.text;
+                console.log(`[API /generate-feedback] PDF content extracted successfully. Text length: ${deckText.length}. Pages: ${data.numpages}.`);
+                if (deckText.length === 0) {
+                    console.warn('[API /generate-feedback] PDF parsing resulted in empty text. The PDF might be image-based or have no extractable text.');
+                }
+            } catch (parseError: any) {
+                console.error('[API /generate-feedback] Error during pdf-parse execution:', parseError.message);
+                deckText = `Error parsing PDF content: ${parseError.message}`;
+            }
+        }
     } else {
         console.warn('[API /generate-feedback] deckBase64Content is not in the expected format or is missing. Using placeholder deckText.');
+        deckText = 'Error: Invalid or missing PDF data format.'; // Set specific error
         // Potentially use a less critical fallback or error if PDF content is essential
     }
 
