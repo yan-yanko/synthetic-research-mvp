@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import type { PitchDetails } from '../pages/deck-upload';
 
 interface PitchDetailsScreenProps {
   onDetailsComplete: (details: PitchDetails) => void;
+  initialDeckTextForDebug?: string | null;
 }
 
 const industryOptions = ["SaaS", "Fintech", "Healthtech", "Biotech", "eCommerce", "AI/ML", "Cleantech", "EdTech", "Security", "Other"];
@@ -34,9 +35,17 @@ const parseFormattedNumber = (value: string): string => {
   return value.replace(/,/g, '');
 };
 
-
-export function PitchDetailsScreen({ onDetailsComplete }: PitchDetailsScreenProps) {
+export function PitchDetailsScreen({ onDetailsComplete, initialDeckTextForDebug }: PitchDetailsScreenProps) {
   const [details, setDetails] = useState<Omit<PitchDetails, 'elevatorPitch'>>(defaultDetails);
+  const [showDebug, setShowDebug] = useState(false);
+
+  useEffect(() => {
+    if (initialDeckTextForDebug && details.executiveSummary === defaultDetails.executiveSummary) {
+      // This is a placeholder. In a real scenario, you might generate a summary here
+      // or expect an AI-generated summary to be passed in and set.
+      // For now, we are just showing the raw text, not trying to make it the executive summary.
+    }
+  }, [initialDeckTextForDebug, details.executiveSummary]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,6 +150,23 @@ export function PitchDetailsScreen({ onDetailsComplete }: PitchDetailsScreenProp
 
         <Button type="submit" className="w-full py-3 text-lg">Continue to Analysis</Button>
       </form>
+
+      {/* Debug Section for Parsed PDF Text */} 
+      {initialDeckTextForDebug && (
+        <div className="mt-6 p-4 border border-dashed border-gray-400 rounded-md bg-gray-50">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-md font-semibold text-gray-700">Debug: Parsed PDF Content (First 1000 chars)</h4>
+            <Button variant="outline" size="sm" onClick={() => setShowDebug(!showDebug)}>
+              {showDebug ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+          {showDebug && (
+            <pre className="mt-2 p-2 bg-white text-xs text-gray-600 whitespace-pre-wrap break-all overflow-auto max-h-60 border rounded">
+              {initialDeckTextForDebug.substring(0, 1000)}{initialDeckTextForDebug.length > 1000 ? '...' : ''}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 } 

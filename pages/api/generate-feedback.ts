@@ -77,6 +77,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   // Renamed deckUrl to deckBase64Content for clarity as it contains Base64 PDF data
   const { deckUrl: deckBase64Content, selectedPersonas = Object.keys(personaConfigs), ...pitchDetailsFromClient } = req.body;
 
+  // Log the received Base64 content (or a snippet if too long)
+  console.log("[API /generate-feedback] Received deckBase64Content (first 100 chars):", typeof deckBase64Content === 'string' ? deckBase64Content.substring(0, 100) + '...' : 'Not a string or not provided');
+
   if (!deckBase64Content) {
     return res.status(400).json({ error: 'deckBase64Content is required.' });
   }
@@ -159,6 +162,7 @@ ${deckText}` }],
         summary: generateConsensusSummary(likelihood),
       },
       generatedExecutiveSummary: generatedExecutiveSummary, // Return AI-generated summary
+      parsedDeckText: deckText, // Return parsed PDF text for debugging
     });
 
   } catch (error: any) {

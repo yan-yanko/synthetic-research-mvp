@@ -55,6 +55,9 @@ export function AnalysisSetupScreen({ onSetupComplete, pitchFileName, deckBase64
     setIsLoading(true);
     setError(null);
 
+    // Log the Base64 content being sent (or a snippet if too long)
+    console.log("[AnalysisSetupScreen] Deck Base64 content (first 100 chars):", deckBase64 ? deckBase64.substring(0, 100) + '...' : null);
+
     const payload = {
       deckUrl: deckBase64 ? `data:application/pdf;base64,${deckBase64}` : "PLACEHOLDER_DECK_URL",
       selectedPersonas: selectedPersonas,

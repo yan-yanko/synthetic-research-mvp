@@ -53,6 +53,7 @@ export default function DeckUploaderPage() {
   // Data from AnalysisSetupScreen
   const [analysisSetup, setAnalysisSetup] = useState<AnalysisSetup | null>(null);
   const [apiResponseData, setApiResponseData] = useState<InvestorFeedbackResponse | null>(null); // State for API response
+  const [parsedDeckTextForDebug, setParsedDeckTextForDebug] = useState<string | null>(null); // State for parsed PDF text
 
   const handleDeckProcessedInPanel = (base64: string | null, fileName: string | null) => {
     setDeckBase64Content(base64);
@@ -91,6 +92,11 @@ export default function DeckUploaderPage() {
       }));
     }
 
+    // Store parsed deck text for debug display
+    if (responseData && responseData.parsedDeckText) {
+      setParsedDeckTextForDebug(responseData.parsedDeckText);
+    }
+
     setCurrentFlowStep('feedbackDisplay');
   };
 
@@ -102,7 +108,7 @@ export default function DeckUploaderPage() {
       case 'processing':
         return <DeckProcessingScreen onProcessingComplete={handleProcessingComplete} />;
       case 'details':
-        return <PitchDetailsScreen onDetailsComplete={handlePitchDetailsComplete} />;
+        return <PitchDetailsScreen onDetailsComplete={handlePitchDetailsComplete} initialDeckTextForDebug={parsedDeckTextForDebug} />;
       case 'analysisSetup':
         return <AnalysisSetupScreen 
           onSetupComplete={handleAnalysisSetupComplete} 
