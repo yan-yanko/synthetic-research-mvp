@@ -143,6 +143,7 @@ export function PitchDetailsScreen({ onDetailsComplete, initialDeckTextForDebug 
             onChange={handleChange} 
             className="mt-1 min-h-[100px]"
             maxLength={1000} 
+            minLength={50}
             required
           />
           <p className="text-xs text-muted-foreground mt-1">{details.executiveSummary.length}/1000</p>

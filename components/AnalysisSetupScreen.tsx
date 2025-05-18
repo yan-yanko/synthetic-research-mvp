@@ -52,6 +52,13 @@ export function AnalysisSetupScreen({ onSetupComplete, pitchFileName, deckBase64
       return;
     }
 
+    if (!deckBase64) {
+      alert("Deck content is missing. Please go back and upload your deck.");
+      setIsLoading(false);
+      setError("Deck content is missing.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
