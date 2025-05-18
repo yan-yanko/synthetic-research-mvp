@@ -122,6 +122,7 @@ export interface FeedbackError {
 export interface InvestorFeedbackResponse {
   personaFeedbacks: PersonaFeedback[];
   consensusReport: ConsensusReport;
+  generatedExecutiveSummary?: string;
 }
 
 export interface PersonaFeedback {
@@ -174,4 +175,5 @@ export const mockData: InvestorFeedbackResponse = {
     likelihoodToInvest: 15, // Mock value
     summary: "This is mock data. Based on limited mock feedback, overall interest is low. Key concerns revolve around market validation and data."
   },
+  generatedExecutiveSummary: "This is a mock executive summary based on the mock pitch deck content. It highlights key aspects and potential for growth."
 }; 

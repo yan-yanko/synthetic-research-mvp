@@ -76,6 +76,21 @@ export default function DeckUploaderPage() {
   const handleAnalysisSetupComplete = (setup: AnalysisSetup, responseData: InvestorFeedbackResponse | null) => {
     setAnalysisSetup(setup);
     setApiResponseData(responseData);
+
+    // If API response contains a generated executive summary, update pitchDetails
+    if (responseData && responseData.generatedExecutiveSummary) {
+      setPitchDetails(prevDetails => ({
+        ...(prevDetails || {
+          industry: '',
+          fundingStage: '',
+          seekingAmount: '',
+          primaryRegion: '',
+          executiveSummary: '' // Default structure if prevDetails was null
+        }),
+        executiveSummary: responseData.generatedExecutiveSummary!, // Non-null assertion as we checked its existence
+      }));
+    }
+
     setCurrentFlowStep('feedbackDisplay');
   };
 
