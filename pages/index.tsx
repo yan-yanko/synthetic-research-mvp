@@ -26,6 +26,7 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
+    console.info("Submitting email form:", e, "Current email state:", email);
     e.preventDefault();
     // TODO: Integrate with email capture backend/service
     setSubmitted(true);
