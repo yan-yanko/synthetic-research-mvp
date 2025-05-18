@@ -74,6 +74,7 @@ export function FeedbackDisplayScreen({ deckInfo, analysisSettings, apiResponseD
                     <p className="font-semibold text-md text-primary">{pf.persona}</p>
                     <p className="text-sm mt-1"><span className="font-medium">Meeting Interest:</span> {pf.wouldTakeMeeting}</p>
                     <p className="text-sm"><span className="font-medium">Verdict:</span> {pf.verdict}</p>
+                    <p className="text-xs mt-1"><span className="font-medium">Bias Applied:</span> {pf.biasApplied ? 'Yes' : 'No'}</p>
                     {pf.emotionalTriggers && pf.emotionalTriggers.length > 0 && 
                       <p className="text-xs mt-1 text-muted-foreground"><span className="font-medium">Triggers:</span> {pf.emotionalTriggers.join(', ')}</p>
                     }
@@ -93,6 +94,7 @@ export function FeedbackDisplayScreen({ deckInfo, analysisSettings, apiResponseD
                 dataToDisplay.personaFeedbacks.map((pf, index) => (
                   <div key={index} className="mb-4 p-3 border rounded-md bg-muted/20">
                     <h4 className="font-semibold text-md text-primary mb-1">{pf.persona}</h4>
+                    <p className="text-xs mb-2"><span className="font-medium">Bias Applied:</span> {pf.biasApplied ? 'Yes' : 'No'}</p>
                     <div>
                         <h5 className="font-medium text-sm">Strengths:</h5>
                         {pf.strengths && pf.strengths.length > 0 ? (

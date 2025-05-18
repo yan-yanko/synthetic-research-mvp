@@ -126,6 +126,7 @@ export interface InvestorFeedbackResponse {
 
 export interface PersonaFeedback {
   persona: string;
+  biasApplied: boolean;
   wouldTakeMeeting: "Yes" | "No";
   strengths: string[];
   concerns: string[];
@@ -152,6 +153,7 @@ export const mockData: InvestorFeedbackResponse = {
   personaFeedbacks: [
     {
       persona: "Angel Investor (Mock)",
+      biasApplied: false,
       wouldTakeMeeting: "No",
       strengths: ["Mock strength 1: Interesting concept"],
       concerns: ["Mock concern 1: Market size unclear", "Mock concern 2: Needs more validation"],
@@ -160,6 +162,7 @@ export const mockData: InvestorFeedbackResponse = {
     },
     {
       persona: "Analytical VC (Mock)",
+      biasApplied: true,
       wouldTakeMeeting: "No",
       strengths: ["Mock strength 1: Technically sound (assumed)"],
       concerns: ["Mock concern 1: No data-driven proof shown", "Mock concern 2: Financial projections missing"],

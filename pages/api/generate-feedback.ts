@@ -13,11 +13,51 @@ const openai = new OpenAI({
 type Persona = 'Angel Investor' | 'Analytical VC' | 'Impact Investor' | 'Institutional LP' | 'Growth Investor';
 
 const personaConfigs: Record<Persona, any> = {
-  'Angel Investor': { riskAppetite: 'High', biases: 'FOMO, Overconfidence', concerns: 'Founder Vision, Market Potential', weight: 0.2 },
-  'Analytical VC': { riskAppetite: 'Moderate', biases: 'Status Quo Bias, Loss Aversion', concerns: 'Market Size, Data-Driven Proof', weight: 0.3 },
-  'Impact Investor': { riskAppetite: 'Moderate', biases: 'Ethical Bias, FOMO', concerns: 'Social/Environmental Impact', weight: 0.1 },
-  'Institutional LP': { riskAppetite: 'Low', biases: 'Loss Aversion, Status Quo Bias', concerns: 'Scalability, Risk Mitigation', weight: 0.2 },
-  'Growth Investor': { riskAppetite: 'High', biases: 'FOMO, Herd Mentality', concerns: 'Revenue Growth, Market Leadership', weight: 0.2 },
+  'Angel Investor': {
+    riskAppetite: 'High',
+    biases: 'FOMO, Overconfidence',
+    concerns: 'Founder Vision, Market Potential',
+    decisionMakingStyle: 'Founder-First',
+    behavioralInconsistencies: 'Often influenced by market hype despite claiming founder-first approach.',
+    biasActivationChance: 0.3,
+    weight: 0.2,
+  },
+  'Analytical VC': {
+    riskAppetite: 'Moderate',
+    biases: 'Status Quo Bias, Loss Aversion',
+    concerns: 'Market Size, Data-Driven Proof',
+    decisionMakingStyle: 'Data-Driven',
+    behavioralInconsistencies: 'May over-analyze and miss opportunities if data is not perfect.',
+    biasActivationChance: 0.15,
+    weight: 0.3,
+  },
+  'Impact Investor': {
+    riskAppetite: 'Moderate',
+    biases: 'Ethical Bias, FOMO (for impact trends)',
+    concerns: 'Social/Environmental Impact, Measurable Outcomes',
+    decisionMakingStyle: 'Mission-Aligned',
+    behavioralInconsistencies: 'May prioritize impact over financial returns more than stated.',
+    biasActivationChance: 0.2,
+    weight: 0.1,
+  },
+  'Institutional LP': {
+    riskAppetite: 'Low',
+    biases: 'Loss Aversion, Status Quo Bias, Herd Mentality (following other LPs)',
+    concerns: 'Scalability, Risk Mitigation, Fund Manager Track Record',
+    decisionMakingStyle: 'Risk-Averse Portfolio Strategy',
+    behavioralInconsistencies: 'Claims long-term view but can be swayed by short-term market sentiment.',
+    biasActivationChance: 0.1,
+    weight: 0.2,
+  },
+  'Growth Investor': {
+    riskAppetite: 'High',
+    biases: 'FOMO, Herd Mentality, Confirmation Bias (on growth metrics)',
+    concerns: 'Revenue Growth, Market Leadership, Scalable Sales Model',
+    decisionMakingStyle: 'Metrics-Driven Growth Focus',
+    behavioralInconsistencies: 'Can sometimes ignore underlying profitability issues if top-line growth is exceptional.',
+    biasActivationChance: 0.25,
+    weight: 0.2,
+  },
 };
 
 type Data = {
@@ -47,10 +87,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!personaData) {
           console.warn(`Configuration for persona ${persona} not found. Skipping.`);
           // Return a value that can be filtered out or handled by parseLLMResponse
-          return parseLLMResponse(persona, '{}'); // Effectively a fallback for this persona
+          // Include biasApplied: false (or a default) for consistency if needed, though it will be filtered by validFeedbacks
+          return { persona, biasApplied: false, ...parseLLMResponse(persona, '{}') }; 
         }
         // Pass the rest of req.body (pitchDetails) to buildPersonaPrompt
-        const prompt = buildPersonaPrompt(persona, personaData, pitchDetails);
+        const applyBias = Math.random() < personaData.biasActivationChance;
+        console.log(`[${persona}] Bias Applied: ${applyBias}`); 
+
+        const prompt = buildPersonaPrompt(persona, personaData, pitchDetails, applyBias);
 
         const response = await openai.chat.completions.create({
           model: 'gpt-4o',
@@ -60,11 +104,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         const content = response.choices[0]?.message?.content || '';
-        return parseLLMResponse(persona, content);
+        const parsedLLMData = parseLLMResponse(persona, content);
+        // Combine parsed LLM data with the biasApplied flag
+        return { ...parsedLLMData, biasApplied: applyBias };
       })
     );
     
-    const validFeedbacks = personaFeedbacks.filter(fb => fb && fb.persona);
+    const validFeedbacks = personaFeedbacks.filter(fb => fb && fb.persona && typeof fb.biasApplied === 'boolean');
 
     const likelihood = calculateConsensusLikelihood(validFeedbacks);
 
@@ -84,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 // --- Helper Functions ---
 
-function buildPersonaPrompt(persona: Persona, data: any, pitchDetails: any): string {
+function buildPersonaPrompt(persona: Persona, data: any, pitchDetails: any, applyBias: boolean): string {
   const pd = {
     fundingStage: pitchDetails.fundingStage || 'Seed',
     industry: pitchDetails.industry || 'Not specified',
@@ -93,14 +139,21 @@ function buildPersonaPrompt(persona: Persona, data: any, pitchDetails: any): str
     executiveSummary: pitchDetails.executiveSummary || 'Not provided'
   };
 
+  const biasInstruction = applyBias 
+    ? `IMPORTANT: Despite logical analysis, your cognitive biases (${data.biases}) are strongly influencing you. Let these biases significantly shape your response, potentially leading to a less rational, more emotionally-driven feedback and verdict. Emphasize aspects that trigger these biases.`
+    : "Provide a balanced and rational analysis based on your investor profile.";
+
   return `
 You are simulating a venture capital investor named ${persona}.
 
 Investor Profile:
 - Investment Stage Focus: ${pd.fundingStage}
 - Risk Appetite: ${data.riskAppetite}
+- Decision-Making Style: ${data.decisionMakingStyle}
+- Behavioral Inconsistencies: ${data.behavioralInconsistencies}
 - Cognitive Biases: ${data.biases}
-- Primary Concerns: ${data.concerns}
+
+${biasInstruction}
 
 Pitch Details:
 - Industry: ${pd.industry}
@@ -114,7 +167,7 @@ Respond *ONLY* with a valid JSON object in the following format (no other text, 
   "wouldTakeMeeting": "Yes/No",
   "strengths": ["strength 1", "strength 2", "strength 3"],
   "concerns": ["concern 1", "concern 2", "concern 3"],
-  "emotionalTriggers": ["trigger 1", "trigger 2"],
+  "emotionalTriggers": ["trigger 1", "trigger 2"], // List specific emotions or biases activated
   "verdict": "Invest / Pass / Monitor and Revisit Later"
 }
 `;
@@ -131,8 +184,8 @@ function parseLLMResponse(persona: Persona, content: string) {
     return {
       persona,
       wouldTakeMeeting: 'No',
-      strengths: ["Error parsing AI response"],
-      concerns: ["Could not interpret AI output for this persona."],
+      strengths: ["Error parsing AI response from LLM."],
+      concerns: ["Could not interpret AI output for this persona. The response might not have been valid JSON."],
       emotionalTriggers: [],
       verdict: 'Pass',
     };
